@@ -5,9 +5,14 @@ on:
 
 
 jobs:
+  
+  
   pyinstaller-build:
     runs-on: windows-latest
     steps:
+      - name: Dep
+        uses: zehengl/refresh-python-dependency@v0.4.2
+
       - name: Build and Release
         uses: kentsx/Python2Exe@v1.1.1
         with:
@@ -16,4 +21,4 @@ jobs:
           artifact: false
           release: true
           token: ${{ secrets.TOKEN }}
-          bodyfile: 'readme.MD'
+
