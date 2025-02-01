@@ -5,7 +5,59 @@ on:
 
 
 jobs:
-  
+  generate-requirements:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'  # استخدام إصدار مرن
+
+    - name: Generate requirements.txt
+      run: |
+        cd python-engine
+        pip install --user pipreqs
+        ~/.local/bin/pipreqs . --force --encoding=utf8
+
+    # Step 4: Check if there are changes
+    - name: Check for changes
+      id: check_changes
+      run: |
+        cd python-engine
+        if [[ -n $(git status --porcelain) ]]; then
+          echo "changes=true" >> $GITHUB_ENV
+        else
+          echo "changes=false" >> $GITHUB_ENV
+        fi
+
+    - name: Create or Update Pull Request
+      if: env.changes == 'true'
+      run: |
+        git config --local user.name "GitHub Action"
+        git config --local user.email "action@github.com"
+
+        BRANCH_NAME="update-requirements"
+        git checkout -B $BRANCH_NAME
+        git add python-engine/requirements.txt
+        git commit -m "Auto-update requirements.txt"
+        git push -u origin $BRANCH_NAME --force
+        
+        PR_EXISTS=$(gh pr list --base main --head $BRANCH_NAME --json number --jq 'length')
+
+        if [[ "$PR_EXISTS" -gt 0 ]]; then
+          echo "Updating existing Pull Request..."
+          PR_NUMBER=$(gh pr list --base main --head $BRANCH_NAME --json number --jq '.[0].number')
+          gh pr edit $PR_NUMBER --title "Update requirements.txt" --body "Auto-generated update for requirements.txt"
+        else
+          echo "Creating new Pull Request..."
+          gh pr create --base main --head $BRANCH_NAME --title "Update requirements.txt" --body "Auto-generated update for requirements.txt"
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   
   pyinstaller-build:
     runs-on: windows-latest
@@ -20,5 +72,4 @@ jobs:
           exe_name: 'IS Subtitled'
           artifact: false
           release: true
-          token: ${{ secrets.TOKEN }}
 
