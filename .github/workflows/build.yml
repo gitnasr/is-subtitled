@@ -1,0 +1,20 @@
+# this is a example for action taking when version.py in main branch changed only.
+on: 
+  push:
+    branches:
+      - 'main'
+
+
+jobs:
+  pyinstaller-build:
+    runs-on: windows-latest
+    steps:
+      - name: Build and Release
+        uses: kentsx/Python2Exe@v1.1.1
+        with:
+          main: main
+          exe_name: 'IS Subtitled'
+          artifact: false
+          release: true
+          token: ${{ secrets.TOKEN }}
+          bodyfile: 'readme.MD'
