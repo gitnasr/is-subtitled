@@ -1,0 +1,72 @@
+# this is a example for action taking when version.py in main branch changed only.
+on: 
+  workflow_dispatch:
+
+
+
+jobs:
+  generate-requirements:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'  
+
+    - name: Generate requirements.txt
+      run: |
+        pip install --user pipreqs
+        ~/.local/bin/pipreqs . --force --encoding=utf8
+
+    - name: Check for changes
+      id: check_changes
+      run: |
+        if [[ -n $(git status --porcelain) ]]; then
+          echo "changes=true" >> $GITHUB_ENV
+        else
+          echo "changes=false" >> $GITHUB_ENV
+        fi
+
+    - name: Create or Update Pull Request
+      if: env.changes == 'true'
+      run: |
+        git config --local user.name "GitHub Action"
+        git config --local user.email "action@github.com"
+
+        BRANCH_NAME="update-requirements"
+        git checkout -B $BRANCH_NAME
+        git add requirements.txt
+        git commit -m "Auto-update requirements.txt"
+        git push -u origin $BRANCH_NAME --force
+        
+        PR_EXISTS=$(gh pr list --base main --head $BRANCH_NAME --json number --jq 'length')
+
+        if [[ "$PR_EXISTS" -gt 0 ]]; then
+          echo "Updating existing Pull Request..."
+          PR_NUMBER=$(gh pr list --base main --head $BRANCH_NAME --json number --jq '.[0].number')
+          gh pr edit $PR_NUMBER --title "Update requirements.txt" --body "Auto-generated update for requirements.txt"
+        else
+          echo "Creating new Pull Request..."
+          gh pr create --base main --head $BRANCH_NAME --title "Update requirements.txt" --body "Auto-generated update for requirements.txt"
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.TOKEN }}
+  
+  pyinstaller-build:
+    runs-on: windows-latest
+    steps:
+      - name: Dep
+        uses: zehengl/refresh-python-dependency@v0.4.2
+
+      - name: Build and Release
+        uses: kentsx/Python2Exe@v1.1.1
+        with:
+          main: main
+          exe_name: 'IS Subtitled'
+          artifact: false
+          release: true
+
