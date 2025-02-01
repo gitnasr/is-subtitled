@@ -2,6 +2,15 @@ name: Build
 
 on:
   workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name for the release'
+        required: true
+        default: 'v1.0.0'
+      release_name:
+        description: 'Release name'
+        required: true
+        default: 'Release v1.0.0'
 
 permissions:
   contents: write
@@ -38,35 +47,47 @@ jobs:
             exit 0
           fi
 
-      - name: Install GitHub CLI
-        run: |
-          sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
-          sudo apt-add-repository https://cli.github.com/packages
-          sudo apt update
-          sudo apt install gh
-
-      - name: Authenticate GitHub CLI
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo $GITHUB_TOKEN | gh auth login --with-token
-
       - name: Create Pull Request
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh pr create --title "Update requirements.txt" --body "This is an automated pull request to update requirements.txt" --base main --head update-requirements
+        uses: peter-evans/create-pull-request@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Auto-update requirements.txt"
+          branch: update-requirements
+          title: "Update requirements.txt"
+          body: "This is an automated pull request to update requirements.txt"
+          base: main
 
   pyinstaller-build:
     runs-on: windows-latest
-    steps:
-      - name: Dep
-        uses: zehengl/refresh-python-dependency@v0.4.2
+    needs: generate-requirements
 
-      - name: Build and Release
-        uses: kentsx/Python2Exe@v1.1.1
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          main: main
-          exe_name: "IS Subtitled"
-          artifact: false
-          release: true
+          python-version: "3.x"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Build executable
+        run: |
+          pip install pyinstaller
+          pyinstaller --onefile --name "is subtitled.exe" main.py
+
+      - name: Create zip file
+        run: |
+          powershell Compress-Archive -Path dist\* -DestinationPath dist\is_subtitled.zip
+
+      - name: Create release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.tag_name }}
+          release_name: ${{ github.event.inputs.release_name }}
+          draft: false
+          prerelease: false
+          files: dist/is_subtitled.zip
