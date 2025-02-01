@@ -1,8 +1,7 @@
 # this is a example for action taking when version.py in main branch changed only.
 on: 
-  push:
-    branches:
-      - 'main'
+  workflow_dispatch:
+
 
 
 jobs:
