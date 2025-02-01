@@ -1,4 +1,5 @@
-# this is a example for action taking when version.py in main branch changed only.
+name: Build
+
 on:
   workflow_dispatch:
 
@@ -23,12 +24,32 @@ jobs:
           pip install --user pipreqs
           ~/.local/bin/pipreqs . --force --encoding=utf8
 
+      - name: Create or update branch
+        run: |
+          git checkout -B update-requirements
+          git add requirements.txt
+          git commit -m "Auto-update requirements.txt" || echo "No changes to commit"
+          git push origin update-requirements --force
+
       - name: Check for new commits
         run: |
           if git diff --quiet main..update-requirements; then
             echo "No new commits to create a pull request."
             exit 0
           fi
+
+      - name: Install GitHub CLI
+        run: |
+          sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
+          sudo apt-add-repository https://cli.github.com/packages
+          sudo apt update
+          sudo apt install gh
+
+      - name: Authenticate GitHub CLI
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo $GITHUB_TOKEN | gh auth login --with-token
 
       - name: Create Pull Request
         env:
