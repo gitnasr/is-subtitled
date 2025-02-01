@@ -54,7 +54,7 @@ jobs:
           gh pr create --base main --head $BRANCH_NAME --title "Update requirements.txt" --body "Auto-generated update for requirements.txt"
         fi
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.TOKEN }}
   
   pyinstaller-build:
     runs-on: windows-latest
