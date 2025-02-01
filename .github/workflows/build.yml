@@ -15,19 +15,16 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.x'  # استخدام إصدار مرن
+        python-version: '3.x'  
 
     - name: Generate requirements.txt
       run: |
-        cd python-engine
         pip install --user pipreqs
         ~/.local/bin/pipreqs . --force --encoding=utf8
 
-    # Step 4: Check if there are changes
     - name: Check for changes
       id: check_changes
       run: |
-        cd python-engine
         if [[ -n $(git status --porcelain) ]]; then
           echo "changes=true" >> $GITHUB_ENV
         else
@@ -42,7 +39,7 @@ jobs:
 
         BRANCH_NAME="update-requirements"
         git checkout -B $BRANCH_NAME
-        git add python-engine/requirements.txt
+        git add requirements.txt
         git commit -m "Auto-update requirements.txt"
         git push -u origin $BRANCH_NAME --force
         
