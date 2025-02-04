@@ -85,6 +85,7 @@ jobs:
           powershell Compress-Archive -Path dist\* -DestinationPath dist\is_subtitled.zip
 
       - name: Create release
+        id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -102,5 +103,5 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: dist\is_subtitled.zip
-          asset_name: is subtitled-v${{ github.event.inputs.tag_name }}.zip
+          asset_name: is-subtitled-v${{ github.event.inputs.tag_name }}.zip
           asset_content_type: application/zip
