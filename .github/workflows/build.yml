@@ -1,5 +1,4 @@
 name: Build
-
 on:
   workflow_dispatch:
     inputs:
@@ -11,43 +10,35 @@ on:
         description: "Release name"
         required: true
         default: "Release v1.0.0"
-
 permissions:
   contents: write
   pull-requests: write
-
 jobs:
   generate-requirements:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.x"
-
       - name: Generate requirements.txt
         run: |
           pip install --user pipreqs
           ~/.local/bin/pipreqs . --force --encoding=utf8
-
       - name: Create or update branch
         run: |
           git checkout -B update-requirements
           git add requirements.txt
           git commit -m "Auto-update requirements.txt" || echo "No changes to commit"
           git push origin update-requirements --force
-
       - name: Check for new commits
         run: |
           if git diff --quiet master..update-requirements; then
             echo "No new commits to create a pull request."
             exit 0
           fi
-
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v4
         with:
@@ -57,33 +48,27 @@ jobs:
           title: "Update requirements.txt"
           body: "This is an automated pull request to update requirements.txt"
           base: master
-
   pyinstaller-build:
     runs-on: windows-latest
     needs: generate-requirements
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.x"
-
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-
       - name: Build executable
         run: |
           pip install pyinstaller
           pyinstaller --onefile --name "is subtitled.exe" main.py
-
       - name: Create zip file
         run: |
-          powershell Compress-Archive -Path dist\* -DestinationPath dist\is_subtitled.zip
-
+          $tagname = "${{github.event.inputs.tag_name}}"
+          powershell Compress-Archive -Path "dist\*" -DestinationPath "dist\is-subtitled-$tagname.zip"
       - name: Create release
         id: create_release
         uses: actions/create-release@v1
@@ -94,7 +79,6 @@ jobs:
           release_name: ${{ github.event.inputs.release_name }}
           draft: false
           prerelease: false
-          
       - name: Upload Release Asset
         id: upload-release-asset
         uses: actions/upload-release-asset@v1
@@ -102,6 +86,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist\is_subtitled.zip
-          asset_name: is-subtitled-v${{ github.event.inputs.tag_name }}.zip
+          asset_path: ./dist/is-subtitled-${{ github.event.inputs.tag_name }}.zip
+          asset_name: is-subtitled-${{ github.event.inputs.tag_name }}.zip
           asset_content_type: application/zip
