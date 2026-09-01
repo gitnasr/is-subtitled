@@ -1,86 +1,150 @@
-# Is Subtitled 🎬 
+<h1 align="center">Is Subtitled</h1>
 
-Never miss subtitles again! 🎯 A fun and friendly Python app that helps you hunt down those sneaky videos hiding without their subtitle files.
+<p align="center">
+  Scan a folder tree and find every video file that has no matching subtitle.
+</p>
 
-## ✨ What's Cool About It?
+<p align="center">
+  <a href="https://github.com/gitnasr/Is-Subtitled/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/gitnasr/Is-Subtitled/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/gitnasr/Is-Subtitled/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/gitnasr/Is-Subtitled?sort=semver"></a>
+  <a href="#license"><img alt="License" src="https://img.shields.io/badge/license-ISC-blue.svg"></a>
+  <img alt=".NET 10" src="https://img.shields.io/badge/.NET-10.0-512BD4">
+  <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey">
+</p>
 
-- 🖱️ Super friendly GUI - no command line wizardry needed!
-- 🔍 Sherlock Holmes-level detective work finding videos without subtitles
-- 🎥 Supports all your favorite video formats
-- 🚫 Skip folders you don't want to check
-- 💾 Remembers your settings (because who likes typing the same thing twice?)
-- 📋 Creates neat and tidy reports
+---
 
-## 🛠️ What You'll Need
+Point it at a media library, and it walks the whole tree and reports the videos sitting there
+without a subtitle file next to them — grouped by folder, so you can see which season or
+collection is the problem rather than reading a flat list of paths.
 
-- 🐍 Python 3.x
-- 🎨 Gooey library (for the pretty interface)
+Built with C# and [Avalonia](https://avaloniaui.net/) on .NET 10. Native, so it has real
+filesystem access: results open straight in your file manager, nothing is uploaded, and the
+folder you picked is still there next time you launch it.
 
-## 🪟 Windows Release
+## Install
 
-- 📦 You can have our latest version without any hassles now, download, unzip, use
-- 🚀 No Python installation is needed!
-- 💫 grab the [latest release](https://github.com/gitnasr/Is-Subtitled/releases), and you're good to go 
+Download `IsSubtitled.exe` from the [latest release](https://github.com/gitnasr/Is-Subtitled/releases/latest)
+and run it. It is a self-contained single file — no .NET runtime installation needed.
 
-## 🚀 Getting Started
+To run from source instead, see [Building](#building).
 
-1. Grab the code:
-   ```bash
-   pip install -r requirements.txt   # First, get our GUI friend installed
-   ```
+## Usage
 
-2. Fire it up:
-   ```bash
-   python main.py   # Let the subtitle hunting begin! 🎮
-   ```
+1. **Choose folder** — pick the root of your library. It is scanned recursively.
+2. **Exclude folders** *(optional)* — type a name and press <kbd>Enter</kbd>. Separate several
+   with commas or semicolons to add them in one go. Entries show as chips you can remove.
+3. **Scan** — runs in the background and can be cancelled mid-scan.
+4. **Act on the results** — click a filename to reveal it in your file manager, click a folder
+   header to open it, or use the copy button for either path. **Save results…** writes a
+   plain-text report.
 
-## 🎮 How to Use
+Your last folder and exclusion list are restored on the next launch.
 
-1. Launch the app (it's the one with the fancy GUI!)
-2. 📁 Pick your video folder
-3. ⛔ Tell it which folders to skip (if any)
-4. 📝 Choose where to save the results
-5. 🚀 Hit Start and watch the magic happen!
+### How a video counts as "missing subtitles"
 
-## 📊 What You'll Get
+A video is reported when **no subtitle file in the same folder shares its exact base name**.
 
-The app creates a nice text file showing:
-- 📁 All videos missing their subtitle buddies, organized by folder
-- 🔢 A total count (so you know how much work is ahead!)
+| Extension type | Recognised |
+| --- | --- |
+| Video | `.mp4` `.mkv` `.flv` `.avi` `.mov` `.wmv` `.ts` |
+| Subtitle | `.srt` `.sub` `.ssa` `.ass` |
 
-Example of what you'll see:
-```
------------------ 🎬 C:/Movies/Action ------------------
-C:/Movies/Action/Movie1.mp4
-C:/Movies/Action/Movie2.mkv
-
------------------ 🎭 C:/Movies/Drama ------------------
-C:/Movies/Drama/Movie3.avi
-
-Total: 3 videos need subtitles! 
+```text
+Movie.mkv + Movie.srt      -> has subtitles
+Movie.mkv + Movie.en.srt   -> reported (base names differ: "Movie" vs "Movie.en")
+Movie.mkv alone            -> reported
 ```
 
-## 🎥 Supported Video Types
+Matching is case-insensitive. Language-suffixed subtitles are **not** matched yet — see
+[Known limitations](#known-limitations).
 
-We've got you covered with all these formats:
-- 📽️ .mp4
-- 🎦 .mkv
-- 🎞️ .flv
-- 🎫 .avi
-- 🎪 .mov
-- 🎭 .wmv
-- 📺 .ts
+### Exclusions
 
-## 💡 Pro Tips
+An exclusion entry can take either form, matched case-insensitively:
 
-- The app looks for `.srt` files that match your video names
-- Everything's sorted alphabetically (because we love organization!)
-- Your settings are saved in `config.json` (we've got your back!)
+- a **bare folder name** — `COMP` skips every folder named `COMP`, anywhere in the tree
+- a **full path** — `H:\PX\COMP` skips that one folder and everything beneath it
 
-## 🎉 And Finally...
+Folders the OS refuses to read are skipped silently rather than aborting the scan.
 
-Happy subtitle hunting! May all your videos be perfectly subtitled! 🌟
+## Configuration
 
+Settings are written the moment you change the folder or the exclusion list:
 
-Made with ❤️ by @gitnasr for subtitle enthusiasts everywhere!
+| OS | Path |
+| --- | --- |
+| Windows | `%AppData%\IsSubtitled\config.json` |
+| macOS / Linux | `~/.config/IsSubtitled/config.json` |
 
+Delete that file to reset the app to defaults. A corrupt file is ignored rather than fatal.
+
+## Known limitations
+
+- Subtitles must match the video's base name **exactly** — `Movie.en.srt` does not satisfy
+  `Movie.mkv`. Multi-language libraries will show false positives.
+- Embedded subtitle tracks muxed into an `.mkv` are not inspected; only sidecar files count.
+- Reveal-in-file-manager selects the file on Windows and macOS, but only opens the containing
+  folder on Linux.
+- Prebuilt binaries are published for `win-x64` only. macOS and Linux run fine from source.
+
+## Building
+
+Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download).
+
+```bash
+dotnet run
+```
+
+Self-contained single-file executable:
+
+```bash
+dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+```
+
+The binary lands in `bin/Release/net10.0/win-x64/publish/`. Swap the `-r` value for
+`osx-arm64` or `linux-x64` to target another platform.
+
+## Project layout
+
+| Path | Responsibility |
+| --- | --- |
+| `Models/SubtitleScanner.cs` | Directory walk and the missing-subtitle rule |
+| `Models/AppConfig.cs` | Loading and saving `config.json` |
+| `Models/Platform.cs` | Reveal-in-file-manager per OS, reusing an open Explorer window |
+| `ViewModels/MainWindowViewModel.cs` | Commands, scan lifecycle, cancellation |
+| `Views/MainWindow.axaml` | The window |
+
+MVVM via [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet), with Avalonia
+compiled bindings enabled.
+
+## Contributing
+
+Commits follow [Conventional Commits](https://www.conventionalcommits.org/) — the prefix picks
+the next version number, so it matters:
+
+| Prefix | Release |
+| --- | --- |
+| `fix:` | patch |
+| `feat:` | minor |
+| `feat!:` or a `BREAKING CHANGE:` footer | major |
+| `docs:` `chore:` `refactor:` `ci:` | none on its own |
+
+Pull requests run a build with warnings treated as errors and attach the resulting exe as a
+14-day artifact, so reviewers can test the actual binary.
+
+## Releases
+
+Fully automated. Every push to `main` runs
+[release-please](https://github.com/googleapis/release-please-action), which reads the commits
+since the last tag and keeps a release PR open with the next version and a generated
+`CHANGELOG.md`. Merging that PR:
+
+1. bumps `<Version>` in `IsSubtitled.csproj` and `version.txt`
+2. commits the updated `CHANGELOG.md`
+3. tags `vX.Y.Z` and publishes the GitHub release
+4. builds the `win-x64` executable and attaches it to that release
+
+## License
+
+[ISC](LICENSE) © Mahmoud Nasr
