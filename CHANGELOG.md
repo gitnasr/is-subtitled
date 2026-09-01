@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.1.1](https://github.com/gitnasr/is-subtitled/compare/v2.1.0...v2.1.1) (2026-09-01)
+
+
+### Documentation
+
+* add a screenshot of the redesigned UI ([91f5ae9](https://github.com/gitnasr/is-subtitled/commit/91f5ae94674546f0d6d5bf8f8d8f96de589c14ce))
+* add a screenshot of the redesigned UI ([b4730dc](https://github.com/gitnasr/is-subtitled/commit/b4730dc2c39974cd04f27f40ef5a578770099842))
+
 ## [2.1.0](https://github.com/gitnasr/is-subtitled/compare/v2.0.0...v2.1.0) (2026-09-01)
 
 
