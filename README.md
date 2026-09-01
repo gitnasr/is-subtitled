@@ -41,6 +41,33 @@ The single-file executable lands in `bin/Release/net10.0/win-x64/publish/`.
 - `Views/MainWindow.axaml` — the window
 - Cross-platform via Avalonia (Windows/macOS/Linux), though "reveal" selects the file on Windows/macOS and opens the folder on Linux.
 
+
+## Releases
+
+Releasing is automated. Every push to `master` runs
+[release-please](https://github.com/googleapis/release-please-action), which reads the
+[Conventional Commits](https://www.conventionalcommits.org/) since the last tag and keeps a
+release PR open with the next version and the generated `CHANGELOG.md`.
+
+Merge that PR and CI will:
+
+1. bump `<Version>` in `IsSubtitled.csproj` and `version.txt`
+2. commit the updated `CHANGELOG.md`
+3. tag the commit (`vX.Y.Z`) and create the GitHub release
+4. build the self-contained `win-x64` exe and attach it to that release
+
+So the commit message decides the bump:
+
+| Prefix | Bump |
+| --- | --- |
+| `fix:` | patch |
+| `feat:` | minor |
+| `feat!:` or a `BREAKING CHANGE:` footer | major |
+| `docs:` `chore:` `refactor:` `ci:` | no release on its own |
+
+Pull requests and pushes to `master` also run a build (`.github/workflows/ci.yml`) with
+warnings treated as errors; the exe is uploaded as a 14-day artifact for testing.
+
 ## License
 
 ISC

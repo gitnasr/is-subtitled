@@ -1,18 +1,13 @@
-name: Build
+name: CI
 
 on:
+  pull_request:
   push:
     branches: [master]
-  pull_request:
-  workflow_dispatch:
-    inputs:
-      tag_name:
-        description: "Tag for the release (e.g. v2.0.0)"
-        required: true
-        default: "v2.0.0"
 
-permissions:
-  contents: write
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -24,8 +19,11 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
-      - name: Restore & build
-        run: dotnet build -c Release --nologo
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build -c Release --no-restore --nologo -warnaserror
 
       - name: Publish single-file exe
         run: >
@@ -33,15 +31,9 @@ jobs:
           -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
           -o publish
 
-      - name: Upload artifact
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: IsSubtitled-win-x64
           path: publish/IsSubtitled.exe
-
-      - name: Create release
-        if: github.event_name == 'workflow_dispatch'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.event.inputs.tag_name }}
-          files: publish/IsSubtitled.exe
+          retention-days: 14
