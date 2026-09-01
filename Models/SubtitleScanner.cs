@@ -6,32 +6,57 @@ using System.Threading;
 
 namespace IsSubtitled.Models;
 
+/// <summary>Live counters reported while a scan is running.</summary>
+public sealed record ScanProgress(
+    string CurrentDirectory,
+    int FilesExamined,
+    int FoldersScanned,
+    int MissingFound);
+
+/// <summary>A video file with no matching subtitle, and its size on disk.</summary>
+public sealed record VideoFile(string FullPath, long Length);
+
 /// <summary>
 /// Walks a directory tree and finds video files that have no matching
 /// subtitle file (same base name) in the same folder.
 /// </summary>
 public static class SubtitleScanner
 {
-    private static readonly HashSet<string> VideoExt = new(StringComparer.OrdinalIgnoreCase)
+    public static readonly string[] VideoExtensions =
         { ".mp4", ".mkv", ".flv", ".avi", ".mov", ".wmv", ".ts" };
 
-    private static readonly HashSet<string> SubExt = new(StringComparer.OrdinalIgnoreCase)
+    public static readonly string[] SubtitleExtensions =
         { ".srt", ".sub", ".ssa", ".ass" };
 
-    public sealed record DirectoryResult(string Directory, IReadOnlyList<string> Videos);
+    private static readonly HashSet<string> VideoExt =
+        new(VideoExtensions, StringComparer.OrdinalIgnoreCase);
+
+    private static readonly HashSet<string> SubExt =
+        new(SubtitleExtensions, StringComparer.OrdinalIgnoreCase);
+
+    public sealed record DirectoryResult(string Directory, IReadOnlyList<VideoFile> Videos);
 
     /// <param name="excluded">Folders to skip — each entry may be a bare folder name (e.g. "COMP")
     /// or a full path (e.g. "H:\PX\COMP"). A full path also skips everything beneath it. Case-insensitive.</param>
-    /// <param name="progress">Reports the directory currently being scanned.</param>
+    /// <param name="progress">Reports the current directory and running counts, once per directory.</param>
     public static List<DirectoryResult> Scan(
         string root,
         IReadOnlySet<string> excluded,
-        IProgress<string>? progress,
+        IProgress<ScanProgress>? progress,
         CancellationToken ct)
     {
         var results = new List<DirectoryResult>();
-        ScanDir(root, excluded, results, progress, ct);
+        var counters = new Counters();
+        ScanDir(root, excluded, results, counters, progress, ct);
         return results;
+    }
+
+    /// <summary>Mutable running totals, threaded through the recursion.</summary>
+    private sealed class Counters
+    {
+        public int Files;
+        public int Folders;
+        public int Missing;
     }
 
     private static bool IsExcluded(string fullPath, IReadOnlySet<string> excluded)
@@ -61,43 +86,64 @@ public static class SubtitleScanner
         string dir,
         IReadOnlySet<string> excluded,
         List<DirectoryResult> results,
-        IProgress<string>? progress,
+        Counters counters,
+        IProgress<ScanProgress>? progress,
         CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
-        progress?.Report(dir);
 
-        string[] files;
-        string[] subDirs;
+        FileInfo[] files;
+        DirectoryInfo[] subDirs;
         try
         {
-            files = Directory.GetFiles(dir);
-            subDirs = Directory.GetDirectories(dir);
+            // DirectoryInfo rather than Directory.GetFiles: on Windows the size comes back
+            // with the directory entry, so file sizes cost no extra syscalls.
+            var info = new DirectoryInfo(dir);
+            files = info.GetFiles();
+            subDirs = info.GetDirectories();
         }
         catch (UnauthorizedAccessException) { return; } // skip folders we can't read
         catch (DirectoryNotFoundException) { return; }
         catch (IOException) { return; }
 
+        counters.Folders++;
+        counters.Files += files.Length;
+
         var subtitleBases = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var f in files)
         {
-            if (SubExt.Contains(Path.GetExtension(f)))
-                subtitleBases.Add(Path.GetFileNameWithoutExtension(f));
+            if (SubExt.Contains(f.Extension))
+                subtitleBases.Add(Path.GetFileNameWithoutExtension(f.Name));
         }
 
         var missing = files
-            .Where(f => VideoExt.Contains(Path.GetExtension(f)))
-            .Where(f => !subtitleBases.Contains(Path.GetFileNameWithoutExtension(f)))
-            .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+            .Where(f => VideoExt.Contains(f.Extension))
+            .Where(f => !subtitleBases.Contains(Path.GetFileNameWithoutExtension(f.Name)))
+            .OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(f => new VideoFile(f.FullName, SafeLength(f)))
             .ToList();
 
         if (missing.Count > 0)
+        {
+            counters.Missing += missing.Count;
             results.Add(new DirectoryResult(dir, missing));
+        }
+
+        // One report per directory — per-file would flood the UI thread.
+        progress?.Report(new ScanProgress(dir, counters.Files, counters.Folders, counters.Missing));
 
         foreach (var sub in subDirs)
         {
-            if (IsExcluded(sub, excluded)) continue;
-            ScanDir(sub, excluded, results, progress, ct);
+            if (IsExcluded(sub.FullName, excluded)) continue;
+            ScanDir(sub.FullName, excluded, results, counters, progress, ct);
         }
+    }
+
+    /// <summary>Length can throw if the entry vanished between enumeration and access.</summary>
+    private static long SafeLength(FileInfo f)
+    {
+        try { return f.Length; }
+        catch (IOException) { return 0; }
+        catch (UnauthorizedAccessException) { return 0; }
     }
 }

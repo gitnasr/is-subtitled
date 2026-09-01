@@ -3,12 +3,13 @@
         xmlns:vm="using:IsSubtitled.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="700"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
         x:Class="IsSubtitled.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         x:Name="Root"
-        Width="900" Height="700"
-        MinWidth="640" MinHeight="480"
+        Width="1200" Height="800"
+        MinWidth="900" MinHeight="600"
+        Background="{DynamicResource Surface}"
         Icon="/Assets/avalonia-logo.ico"
         Title="Is Subtitled">
 
@@ -16,123 +17,375 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <DockPanel Margin="20">
-        <!-- Header -->
-        <StackPanel DockPanel.Dock="Top" Spacing="2" Margin="0,0,0,16">
-            <TextBlock Text="Is Subtitled" FontSize="26" FontWeight="Bold"/>
-            <TextBlock Text="Find video files missing a matching subtitle." Opacity="0.7"/>
-        </StackPanel>
+    <DockPanel>
 
-        <!-- Controls card -->
-        <Border DockPanel.Dock="Top" Margin="0,0,0,16" Padding="16"
-                Background="#1f2937" CornerRadius="8" BorderBrush="#374151" BorderThickness="1">
-            <StackPanel Spacing="12">
-                <!-- Folder -->
-                <StackPanel Spacing="4">
-                    <TextBlock Text="Folder to scan" FontWeight="SemiBold"/>
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Button Content="Choose folder…" Command="{Binding PickFolderCommand}"/>
-                        <TextBlock Text="{Binding SelectedFolder, FallbackValue='No folder selected'}"
-                                   VerticalAlignment="Center" Opacity="0.8" TextTrimming="CharacterEllipsis"/>
-                    </StackPanel>
+        <!-- Header: identity on the left, scan summary pill on the right -->
+        <Border DockPanel.Dock="Top" Padding="20,14"
+                BorderBrush="{DynamicResource OutlineVariant}" BorderThickness="0,0,0,1">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <TextBlock Text="Is Subtitled" FontSize="18" FontWeight="Bold"
+                               Foreground="{DynamicResource Primary}"/>
+                    <TextBlock Text="Find video files missing a matching subtitle."
+                               Classes="muted" VerticalAlignment="Center"/>
                 </StackPanel>
 
-                <!-- Excluded folder names -->
-                <StackPanel Spacing="4">
-                    <TextBlock Text="Excluded folder names" FontWeight="SemiBold"/>
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <TextBox Width="320" PlaceholderText="Folder name to skip (Enter to add)"
-                                 Text="{Binding NewExcluded}">
-                            <TextBox.KeyBindings>
-                                <KeyBinding Gesture="Enter" Command="{Binding AddExcludedCommand}"/>
-                            </TextBox.KeyBindings>
-                        </TextBox>
-                        <Button Content="Add" Command="{Binding AddExcludedCommand}"/>
-                    </StackPanel>
-                    <ItemsControl ItemsSource="{Binding ExcludedDirs}" Margin="0,4,0,0">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="x:String">
-                                <Border Background="#374151" CornerRadius="12" Padding="8,3" Margin="0,0,6,6">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
-                                        <Button Content="✕" Padding="2,0" FontSize="11"
-                                                Background="Transparent" BorderThickness="0"
-                                                Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).RemoveExcludedCommand}"
-                                                CommandParameter="{Binding}"/>
+                <Border Grid.Column="2" Classes="chip-static" Padding="12,5"
+                        IsVisible="{Binding ShowSummary}">
+                    <TextBlock Classes="mono" Text="{Binding SummaryText}"
+                               Foreground="{DynamicResource OnSurfaceVariant}"/>
+                </Border>
+            </Grid>
+        </Border>
+
+        <Grid ColumnDefinitions="360,*" Margin="16" ColumnSpacing="12">
+
+            <!-- ================= Configuration panel ================= -->
+            <Border Grid.Column="0" Classes="card">
+                <DockPanel>
+                    <Border DockPanel.Dock="Top" Padding="16,14"
+                            BorderBrush="{DynamicResource OutlineVariant}" BorderThickness="0,0,0,1">
+                        <TextBlock Classes="label-caps" Text="SCAN CONFIGURATION"/>
+                    </Border>
+
+                    <!-- Actions pinned to the bottom of the panel -->
+                    <Border DockPanel.Dock="Bottom" Padding="16,12"
+                            BorderBrush="{DynamicResource OutlineVariant}" BorderThickness="0,1,0,0">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Button Grid.Column="0" Classes="ghost" Content="Save results…"
+                                    HorizontalAlignment="Left" Command="{Binding SaveCommand}"/>
+                            <Button Grid.Column="1" Classes="primary" Content="Scan"
+                                    IsVisible="{Binding !IsScanning}" Command="{Binding ScanCommand}"/>
+                            <Button Grid.Column="1" Classes="danger" Content="Cancel"
+                                    IsVisible="{Binding IsScanning}" Command="{Binding CancelCommand}"/>
+                        </Grid>
+                    </Border>
+
+                    <ScrollViewer Padding="16">
+                        <StackPanel Spacing="18">
+
+                            <!-- Folder -->
+                            <StackPanel Spacing="6">
+                                <TextBlock Classes="field-label" Text="Folder to scan"/>
+                                <Border Background="{DynamicResource SurfaceLowest}" CornerRadius="6"
+                                        BorderBrush="{DynamicResource OutlineVariant}" BorderThickness="1"
+                                        Padding="10,7">
+                                    <TextBlock Classes="mono" Text="{Binding FolderDisplay}"
+                                               TextTrimming="CharacterEllipsis"
+                                               ToolTip.Tip="{Binding FolderDisplay}"/>
+                                </Border>
+                                <Button Classes="ghost" Content="Choose folder…"
+                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                        Command="{Binding PickFolderCommand}"/>
+                            </StackPanel>
+
+                            <!-- Exclusions -->
+                            <StackPanel Spacing="6">
+                                <TextBlock Classes="field-label" Text="Excluded folder names"/>
+                                <TextBox Text="{Binding NewExcluded}"
+                                         PlaceholderText="Name or full path, comma separated">
+                                    <TextBox.KeyBindings>
+                                        <KeyBinding Gesture="Enter" Command="{Binding AddExcludedCommand}"/>
+                                    </TextBox.KeyBindings>
+                                </TextBox>
+                                <ItemsControl ItemsSource="{Binding ExcludedDirs}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="x:String">
+                                            <Border Classes="chip" Margin="0,6,6,0">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <TextBlock Text="{Binding}" FontSize="12"
+                                                               VerticalAlignment="Center"/>
+                                                    <Button Classes="icon" Content="✕" Padding="2,0" FontSize="10"
+                                                            ToolTip.Tip="Remove"
+                                                            Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).RemoveExcludedCommand}"
+                                                            CommandParameter="{Binding}"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+
+                            <!-- Formats: what the scanner actually recognises -->
+                            <StackPanel Spacing="6">
+                                <TextBlock Classes="field-label" Text="Video formats"/>
+                                <ItemsControl ItemsSource="{Binding VideoFormats}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="x:String">
+                                            <Border Classes="chip-static" Margin="0,4,5,0">
+                                                <TextBlock Classes="mono" Text="{Binding}" FontSize="11"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+
+                            <StackPanel Spacing="6">
+                                <TextBlock Classes="field-label" Text="Subtitle formats"/>
+                                <ItemsControl ItemsSource="{Binding SubtitleFormats}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="x:String">
+                                            <Border Classes="chip-static" Margin="0,4,5,0">
+                                                <TextBlock Classes="mono" Text="{Binding}" FontSize="11"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+
+                            <TextBlock Text="{Binding Status}" Classes="muted" FontSize="12"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+
+            <!-- ================= Results pane ================= -->
+            <Border Grid.Column="1" Classes="card">
+                <DockPanel>
+
+                    <!-- Filter and sort, only meaningful once there are rows -->
+                    <Border DockPanel.Dock="Top" Padding="12,10"
+                            IsVisible="{Binding ShowResultsToolbar}"
+                            BorderBrush="{DynamicResource OutlineVariant}" BorderThickness="0,0,0,1">
+                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                            <TextBox Grid.Column="0" Text="{Binding FilterText}"
+                                     PlaceholderText="Filter by file or folder name…"/>
+                            <TextBlock Grid.Column="1" Text="Sort by" Classes="muted"
+                                       VerticalAlignment="Center" FontSize="12"/>
+                            <ComboBox Grid.Column="2" SelectedIndex="{Binding SortIndex}" MinWidth="130">
+                                <ComboBoxItem Content="Folder name"/>
+                                <ComboBoxItem Content="File count"/>
+                                <ComboBoxItem Content="Total size"/>
+                            </ComboBox>
+                        </Grid>
+                    </Border>
+
+                    <Grid>
+
+                        <!-- Idle -->
+                        <StackPanel IsVisible="{Binding IsIdle}" Spacing="14"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="440">
+                            <Border Width="96" Height="96" CornerRadius="100"
+                                    BorderBrush="{DynamicResource OutlineVariant}" BorderThickness="1"
+                                    HorizontalAlignment="Center">
+                                <TextBlock Text="⌕" FontSize="40" Classes="muted"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="Ready to scan" FontSize="17" FontWeight="SemiBold"
+                                       HorizontalAlignment="Center"/>
+                            <TextBlock Classes="muted" TextWrapping="Wrap" TextAlignment="Center"
+                                       Text="Choose a folder on the left and hit Scan. Every video without a subtitle file beside it will be listed here, grouped by folder."/>
+                        </StackPanel>
+
+                        <!-- Scanning -->
+                        <DockPanel IsVisible="{Binding IsScanning}" Margin="12">
+                            <StackPanel DockPanel.Dock="Top" Spacing="10">
+                                <TextBlock Classes="label-caps" Text="TARGET PATH"/>
+                                <Border Classes="chip-static" HorizontalAlignment="Left" Padding="10,4">
+                                    <TextBlock Classes="mono" Text="{Binding SelectedFolder}"/>
+                                </Border>
+
+                                <ItemsControl ItemsSource="{Binding ExcludedDirs}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="x:String">
+                                            <Border Classes="chip" Margin="0,0,6,0">
+                                                <TextBlock Text="{Binding}" FontSize="11"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <Border Background="{DynamicResource SurfaceContainer}" CornerRadius="6"
+                                        Padding="12,10" Margin="0,4,0,0">
+                                    <Grid ColumnDefinitions="Auto,*">
+                                        <TextBlock Grid.Column="0" Text="●" Foreground="{DynamicResource Primary}"
+                                                   VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                        <TextBlock Grid.Column="1" Classes="mono"
+                                                   Text="{Binding CurrentDirectory}"
+                                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+
+                                <Border BorderBrush="{DynamicResource OutlineVariant}" BorderThickness="0,0,0,1"
+                                        Padding="2,8">
+                                    <StackPanel Orientation="Horizontal" Spacing="18">
+                                        <TextBlock Classes="mono" Text="{Binding FilesExamined, StringFormat='Examined: {0} files'}"/>
+                                        <TextBlock Classes="mono" Text="{Binding FoldersScanned, StringFormat='Folders: {0}'}"/>
+                                        <TextBlock Classes="mono" Foreground="{DynamicResource Primary}"
+                                                   Text="{Binding MissingFound, StringFormat='Found: {0} missing'}"/>
                                     </StackPanel>
                                 </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
+                            </StackPanel>
 
-                <!-- Actions -->
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Button Content="Scan" Command="{Binding ScanCommand}"
-                            IsVisible="{Binding IsIdle}"
-                            Background="#16a34a" Foreground="White"/>
-                    <Button Content="Cancel" Command="{Binding CancelCommand}"
-                            IsVisible="{Binding IsScanning}"
-                            Background="#dc2626" Foreground="White"/>
-                    <Button Content="Save results…" Command="{Binding SaveCommand}"/>
-                    <TextBlock Text="{Binding Status}" VerticalAlignment="Center" Opacity="0.8"/>
-                </StackPanel>
-            </StackPanel>
-        </Border>
+                            <ScrollViewer>
+                                <ItemsControl ItemsSource="{Binding RecentDirectories}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="x:String">
+                                            <Border Classes="row">
+                                                <TextBlock Classes="mono" Text="{Binding}"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           VerticalAlignment="Center"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </DockPanel>
 
-        <!-- Results -->
-        <Border Padding="8" Background="#1f2937" CornerRadius="8"
-                BorderBrush="#374151" BorderThickness="1">
-            <ScrollViewer>
-                <ItemsControl ItemsSource="{Binding Results}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:DirectoryGroup">
-                            <Border Background="#111827" CornerRadius="6" Padding="12" Margin="4"
-                                    BorderBrush="#374151" BorderThickness="1">
-                                <StackPanel Spacing="4">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <Button Content="{Binding Directory}" FontWeight="Bold"
-                                                HorizontalAlignment="Left" Padding="0"
-                                                Background="Transparent" BorderThickness="0"
-                                                ToolTip.Tip="Open folder in file manager"
-                                                Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).OpenFolderCommand}"
-                                                CommandParameter="{Binding Directory}"/>
-                                        <Button Content="📋" Padding="2,0" FontSize="11"
-                                                Background="Transparent" BorderThickness="0"
-                                                ToolTip.Tip="Copy folder path"
-                                                Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).CopyPathCommand}"
-                                                CommandParameter="{Binding Directory}"/>
-                                    </StackPanel>
-                                    <ItemsControl ItemsSource="{Binding Videos}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate x:DataType="vm:VideoItem">
-                                                <StackPanel Orientation="Horizontal" Spacing="6" Margin="12,1,0,1">
-                                                    <Button Content="{Binding Name}"
-                                                            HorizontalAlignment="Left" Padding="2,0"
-                                                            Background="Transparent" BorderThickness="0"
-                                                            ToolTip.Tip="Open in file manager"
-                                                            Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).OpenInExplorerCommand}"
-                                                            CommandParameter="{Binding}"/>
-                                                    <Button Content="📋" Padding="2,0" FontSize="11"
-                                                            Background="Transparent" BorderThickness="0"
-                                                            ToolTip.Tip="Copy full path"
+                        <!-- Results -->
+                        <ScrollViewer IsVisible="{Binding HasResults}" Padding="12">
+                            <ItemsControl ItemsSource="{Binding Results}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:DirectoryGroup">
+                                        <StackPanel Margin="0,0,0,10">
+
+                                            <!-- Group header: chevron, name, path, count badge -->
+                                            <Border Classes="group-header">
+                                                <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto">
+                                                    <Button Grid.Column="0" Classes="icon" Padding="4,0"
+                                                            ToolTip.Tip="Expand or collapse"
+                                                            Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).ToggleGroupCommand}"
+                                                            CommandParameter="{Binding}">
+                                                        <TextBlock Text="{Binding IsExpanded, Converter={x:Static vm:Converters.ChevronConverter}}"/>
+                                                    </Button>
+
+                                                    <Button Grid.Column="1" Classes="link" Margin="6,0,10,0"
+                                                            FontWeight="SemiBold"
+                                                            ToolTip.Tip="Open folder in file manager"
+                                                            Content="{Binding DisplayName}"
+                                                            Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).OpenFolderCommand}"
+                                                            CommandParameter="{Binding Directory}"/>
+
+                                                    <TextBlock Grid.Column="2" Classes="mono"
+                                                               Text="{Binding Directory}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center"/>
+
+                                                    <Button Grid.Column="3" Classes="icon" Content="⧉"
+                                                            ToolTip.Tip="Copy folder path"
                                                             Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).CopyPathCommand}"
-                                                            CommandParameter="{Binding FullPath}"/>
-                                                </StackPanel>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
-        </Border>
+                                                            CommandParameter="{Binding Directory}"/>
+
+                                                    <Border Grid.Column="4" Classes="badge" Margin="6,0,0,0">
+                                                        <TextBlock Text="{Binding Count}" FontSize="11"
+                                                                   FontWeight="Bold"
+                                                                   Foreground="{DynamicResource OnPrimary}"
+                                                                   HorizontalAlignment="Center"/>
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+
+                                            <!-- Files -->
+                                            <ItemsControl ItemsSource="{Binding Videos}"
+                                                          IsVisible="{Binding IsExpanded}"
+                                                          Margin="16,2,0,0">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:VideoItem">
+                                                        <Border Classes="row">
+                                                            <Grid ColumnDefinitions="*,Auto,Auto">
+                                                                <Button Grid.Column="0" Classes="link"
+                                                                        Content="{Binding Name}"
+                                                                        VerticalAlignment="Center"
+                                                                        ToolTip.Tip="Reveal in file manager"
+                                                                        Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).OpenInExplorerCommand}"
+                                                                        CommandParameter="{Binding}"/>
+
+                                                                <TextBlock Grid.Column="1" Classes="mono"
+                                                                           Text="{Binding SizeText}"
+                                                                           Margin="12,0" MinWidth="70"
+                                                                           TextAlignment="Right"
+                                                                           VerticalAlignment="Center"/>
+
+                                                                <StackPanel Grid.Column="2" x:Name="RowActions"
+                                                                            Orientation="Horizontal" Spacing="2">
+                                                                    <Button Classes="icon" Content="⧉"
+                                                                            ToolTip.Tip="Copy full path"
+                                                                            Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).CopyPathCommand}"
+                                                                            CommandParameter="{Binding FullPath}"/>
+                                                                    <Button Classes="icon" Content="↗"
+                                                                            ToolTip.Tip="Reveal in file manager"
+                                                                            Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).OpenInExplorerCommand}"
+                                                                            CommandParameter="{Binding}"/>
+                                                                </StackPanel>
+                                                            </Grid>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+
+                        <!-- All good -->
+                        <Border IsVisible="{Binding IsAllGood}" Classes="card"
+                                Background="{DynamicResource SurfaceContainer}"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Padding="60,40" MaxWidth="520">
+                            <StackPanel Spacing="14">
+                                <Border Width="88" Height="88" CornerRadius="100"
+                                        Background="{DynamicResource PrimaryDim}"
+                                        HorizontalAlignment="Center">
+                                    <TextBlock Text="✓" FontSize="38" Foreground="{DynamicResource Primary}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="Everything is subtitled." FontSize="18" FontWeight="SemiBold"
+                                           HorizontalAlignment="Center"/>
+                                <TextBlock Classes="muted" TextWrapping="Wrap" TextAlignment="Center"
+                                           Text="Every video file in this folder has a matching subtitle beside it. Nothing to do."/>
+                                <Button Classes="primary" Content="Re-scan folder"
+                                        HorizontalAlignment="Center" Command="{Binding ScanCommand}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Error -->
+                        <Border IsVisible="{Binding IsError}" Classes="card"
+                                Background="{DynamicResource SurfaceContainer}"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Padding="60,40" MaxWidth="560">
+                            <StackPanel Spacing="14">
+                                <Border Width="88" Height="88" CornerRadius="100"
+                                        Background="{DynamicResource ErrorDim}"
+                                        HorizontalAlignment="Center">
+                                    <TextBlock Text="!" FontSize="38" Foreground="{DynamicResource Error}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="Scan failed" FontSize="18" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource Error}"
+                                           HorizontalAlignment="Center"/>
+                                <TextBlock Classes="mono" Text="{Binding ErrorPath}" TextWrapping="Wrap"
+                                           TextAlignment="Center"/>
+                                <TextBlock Classes="muted" Text="{Binding Status}" TextWrapping="Wrap"
+                                           TextAlignment="Center"/>
+                                <Button Classes="ghost" Content="Retry"
+                                        HorizontalAlignment="Center" Command="{Binding RetryCommand}"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </DockPanel>
+            </Border>
+        </Grid>
     </DockPanel>
 </Window>

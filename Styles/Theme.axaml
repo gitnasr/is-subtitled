@@ -1,0 +1,49 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+      "Earth ember" palette, taken from the rendered Stitch screens rather than
+      DESIGN.md's frontmatter (the two disagree; the screens are what was approved).
+      Depth is tonal layering plus 1px hairlines only - no shadows, no gradients.
+    -->
+
+    <!-- Surfaces, darkest to lightest -->
+    <SolidColorBrush x:Key="SurfaceLowest" Color="#120d08"/>
+    <SolidColorBrush x:Key="Surface" Color="#18120d"/>
+    <SolidColorBrush x:Key="SurfaceLow" Color="#201b14"/>
+    <SolidColorBrush x:Key="SurfaceContainer" Color="#241f18"/>
+    <SolidColorBrush x:Key="SurfaceHigh" Color="#2f2922"/>
+    <SolidColorBrush x:Key="SurfaceHighest" Color="#3a342c"/>
+
+    <!-- Lines -->
+    <SolidColorBrush x:Key="Outline" Color="#9c8e81"/>
+    <SolidColorBrush x:Key="OutlineVariant" Color="#4f453a"/>
+
+    <!-- Text -->
+    <SolidColorBrush x:Key="OnSurface" Color="#eedecd"/>
+    <SolidColorBrush x:Key="OnSurfaceVariant" Color="#d3c4b5"/>
+    <SolidColorBrush x:Key="OnSurfaceMuted" Color="#9c8e81"/>
+
+    <!-- Accent -->
+    <SolidColorBrush x:Key="Primary" Color="#ffb68c"/>
+    <SolidColorBrush x:Key="PrimaryContainer" Color="#763300"/>
+    <SolidColorBrush x:Key="PrimaryContainerHover" Color="#8d3d00"/>
+    <SolidColorBrush x:Key="OnPrimary" Color="#ffdbcb"/>
+    <SolidColorBrush x:Key="PrimaryDim" Color="#522300"/>
+
+    <!-- Error / destructive -->
+    <SolidColorBrush x:Key="Error" Color="#ffb4ab"/>
+    <SolidColorBrush x:Key="ErrorContainer" Color="#93000a"/>
+    <SolidColorBrush x:Key="ErrorDim" Color="#3a0f0c"/>
+    <SolidColorBrush x:Key="OnErrorContainer" Color="#ffdad6"/>
+
+    <!-- Shape: containers 8px, inputs 6px, chips pill -->
+    <CornerRadius x:Key="RadiusCard">8</CornerRadius>
+    <CornerRadius x:Key="RadiusInput">6</CornerRadius>
+    <CornerRadius x:Key="RadiusChip">100</CornerRadius>
+    <Thickness x:Key="Hairline">1</Thickness>
+
+    <!-- Type: Inter for UI (registered in Program.cs), mono for paths and counts -->
+    <FontFamily x:Key="FontUi">avares://Avalonia.Fonts.Inter/Assets#Inter</FontFamily>
+    <FontFamily x:Key="FontMono">Cascadia Mono,Consolas,Menlo,DejaVu Sans Mono,monospace</FontFamily>
+</ResourceDictionary>
