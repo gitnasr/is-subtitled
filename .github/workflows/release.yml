@@ -2,7 +2,7 @@ name: Release
 
 on:
   push:
-    branches: [master]
+    branches: [main]
 
 permissions:
   contents: write
@@ -13,8 +13,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Opens/updates a "chore(master): release X.Y.Z" PR that bumps the version and
-  # writes CHANGELOG.md from the Conventional Commits on master. Merging that PR
+  # Opens/updates a "chore(main): release X.Y.Z" PR that bumps the version and
+  # writes CHANGELOG.md from the Conventional Commits on main. Merging that PR
   # tags the commit and creates the GitHub release.
   release-please:
     runs-on: ubuntu-latest

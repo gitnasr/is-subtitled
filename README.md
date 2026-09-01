@@ -44,7 +44,7 @@ The single-file executable lands in `bin/Release/net10.0/win-x64/publish/`.
 
 ## Releases
 
-Releasing is automated. Every push to `master` runs
+Releasing is automated. Every push to `main` runs
 [release-please](https://github.com/googleapis/release-please-action), which reads the
 [Conventional Commits](https://www.conventionalcommits.org/) since the last tag and keeps a
 release PR open with the next version and the generated `CHANGELOG.md`.
@@ -65,7 +65,7 @@ So the commit message decides the bump:
 | `feat!:` or a `BREAKING CHANGE:` footer | major |
 | `docs:` `chore:` `refactor:` `ci:` | no release on its own |
 
-Pull requests and pushes to `master` also run a build (`.github/workflows/ci.yml`) with
+Pull requests and pushes to `main` also run a build (`.github/workflows/ci.yml`) with
 warnings treated as errors; the exe is uploaded as a 14-day artifact for testing.
 
 ## License
