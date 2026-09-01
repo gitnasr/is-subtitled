@@ -34,10 +34,12 @@ To run from source instead, see [Building](#building).
 1. **Choose folder** — pick the root of your library. It is scanned recursively.
 2. **Exclude folders** *(optional)* — type a name and press <kbd>Enter</kbd>. Separate several
    with commas or semicolons to add them in one go. Entries show as chips you can remove.
-3. **Scan** — runs in the background and can be cancelled mid-scan.
-4. **Act on the results** — click a filename to reveal it in your file manager, click a folder
-   header to open it, or use the copy button for either path. **Save results…** writes a
-   plain-text report.
+3. **Scan** — runs in the background and can be cancelled mid-scan. While it runs you see the
+   folder being walked, the number of files examined, and how many are missing so far.
+4. **Act on the results** — videos are grouped by folder, each group collapsible and badged with
+   its file count and shown with each file's size. Filter by name and sort by folder, file count
+   or total size. Click a filename to reveal it in your file manager, click a folder header to
+   open it, or use the copy button for either path. **Save results…** writes a plain-text report.
 
 Your last folder and exclusion list are restored on the next launch.
 
@@ -112,6 +114,8 @@ The binary lands in `bin/Release/net10.0/win-x64/publish/`. Swap the `-r` value 
 | `Models/SubtitleScanner.cs` | Directory walk and the missing-subtitle rule |
 | `Models/AppConfig.cs` | Loading and saving `config.json` |
 | `Models/Platform.cs` | Reveal-in-file-manager per OS, reusing an open Explorer window |
+| `Styles/Theme.axaml` | Colour, radius and font tokens — the whole palette |
+| `Styles/Controls.axaml` | Control styles built on those tokens |
 | `ViewModels/MainWindowViewModel.cs` | Commands, scan lifecycle, cancellation |
 | `Views/MainWindow.axaml` | The window |
 
@@ -140,7 +144,7 @@ Fully automated. Every push to `main` runs
 since the last tag and keeps a release PR open with the next version and a generated
 `CHANGELOG.md`. Merging that PR:
 
-1. bumps `<Version>` in `IsSubtitled.csproj` and `version.txt`
+1. bumps `<Version>` in `IsSubtitled.csproj`
 2. commits the updated `CHANGELOG.md`
 3. tags `vX.Y.Z` and publishes the GitHub release
 4. builds the `win-x64` executable and attaches it to that release
