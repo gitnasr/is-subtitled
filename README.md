@@ -22,6 +22,13 @@ Built with C# and [Avalonia](https://avaloniaui.net/) on .NET 10. Native, so it 
 filesystem access: results open straight in your file manager, nothing is uploaded, and the
 folder you picked is still there next time you launch it.
 
+<p align="center">
+  <img src="docs/screenshot.png" width="900"
+       alt="The app after a scan: a configuration panel on the left, and results on the right grouped by folder, each group badged with its file count and each file showing its size.">
+</p>
+
+<p align="center"><sub>File and folder names are blurred in this screenshot.</sub></p>
+
 ## Install
 
 Download `IsSubtitled.exe` from the [latest release](https://github.com/gitnasr/Is-Subtitled/releases/latest)
