@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/gitnasr/is-subtitled/compare/v2.0.0...v2.1.0) (2026-09-01)
+
+
+### Features
+
+* redesign the UI to the earth ember design ([b4bc032](https://github.com/gitnasr/is-subtitled/commit/b4bc03217ff8d3c4b4a6bf5f0d35bc318da7770b))
+
 ## [2.0.0](https://github.com/gitnasr/is-subtitled/compare/v1.0.0...v2.0.0) (2026-09-01)
 
 
