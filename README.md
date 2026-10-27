@@ -1,12 +1,12 @@
-<h1 align="center">Is Subtitled</h1>
+﻿<h1 align="center">Is Subtitled</h1>
 
 <p align="center">
   Scan a folder tree and find every video file that has no matching subtitle.
 </p>
 
 <p align="center">
-  <a href="https://github.com/gitnasr/Is-Subtitled/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/gitnasr/Is-Subtitled/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="https://github.com/gitnasr/Is-Subtitled/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/gitnasr/Is-Subtitled?sort=semver"></a>
+  <a href="https://github.com/gitnasr/is-subtitled/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/gitnasr/is-subtitled/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/gitnasr/is-subtitled/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/gitnasr/is-subtitled?sort=semver"></a>
   <a href="#license"><img alt="License" src="https://img.shields.io/badge/license-ISC-blue.svg"></a>
   <img alt=".NET 10" src="https://img.shields.io/badge/.NET-10.0-512BD4">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey">
@@ -31,24 +31,31 @@ folder you picked is still there next time you launch it.
 
 ## Install
 
-Download `IsSubtitled.exe` from the [latest release](https://github.com/gitnasr/Is-Subtitled/releases/latest)
-and run it. It is a self-contained single file — no .NET runtime installation needed.
+Download the appropriate binary for your platform from the [latest release](https://github.com/gitnasr/is-subtitled/releases/latest):
+
+- **Windows (x64)**: `IsSubtitled.exe` (portable, self-contained single-file executable — no runtime installation required)
+- **Linux (x64)**: `IsSubtitled-linux-x64.tar.gz`
+- **macOS (Apple Silicon)**: `IsSubtitled-osx-arm64.tar.gz`
+- **macOS (Intel)**: `IsSubtitled-osx-x64.tar.gz`
 
 To run from source instead, see [Building](#building).
+
+## Features
+
+- **Blazing Fast Scanning**: Traverses multi-terabyte libraries and deeply nested folder structures in seconds.
+- **Grouped by Folder**: Results are clustered by directory/season, badged with file counts and total byte sizes.
+- **In-App Auto-Updates**: Automatically checks GitHub Releases on launch or on-demand, streams downloads in the background with progress reporting, and restarts to install.
+- **Flexible Exclusions**: Skip folders by bare name, relative subpath, or full path with full forward/backward slash normalization.
+- **OS File Manager Integration**: Click any file to reveal it directly in Windows Explorer, macOS Finder, or Linux file managers.
+- **Zero Telemetry / 100% Offline**: Operates entirely locally on your machine.
 
 ## Usage
 
 1. **Choose folder** — pick the root of your library. It is scanned recursively.
-2. **Exclude folders** *(optional)* — type a name and press <kbd>Enter</kbd>. Separate several
-   with commas or semicolons to add them in one go. Entries show as chips you can remove.
-3. **Scan** — runs in the background and can be cancelled mid-scan. While it runs you see the
-   folder being walked, the number of files examined, and how many are missing so far.
-4. **Act on the results** — videos are grouped by folder, each group collapsible and badged with
-   its file count and shown with each file's size. Filter by name and sort by folder, file count
-   or total size. Click a filename to reveal it in your file manager, click a folder header to
-   open it, or use the copy button for either path. **Save results…** writes a plain-text report.
-
-Your last folder and exclusion list are restored on the next launch.
+2. **Exclude folders** *(optional)* — type a folder name, relative subpath, or full path and click **Add** or press <kbd>Enter</kbd>. Separate several with commas or semicolons to add them in one go. Entries show as removable chips. Any pending text left in the input box is automatically committed upon clicking **Scan**.
+3. **Scan** — runs in the background and can be cancelled mid-scan. While it runs you see live counters of folders walked, files examined, and missing subtitles found.
+4. **Act on the results** — videos are grouped by folder, each group collapsible and badged with its file count and size. Filter by name and sort by folder, file count, or total size. Click a filename to reveal it in your file manager, click a folder header to open it, or use the copy button for either path. **Save results…** exports a plain-text report.
+5. **Check for updates** — click the version pill in the top header (e.g. `v2.3.0`) at any time to verify against the latest GitHub release. When an update is ready, click **Download in Background**, then **Restart & Install**.
 
 ### How a video counts as "missing subtitles"
 
@@ -70,91 +77,68 @@ Matching is case-insensitive. Language-suffixed subtitles are **not** matched ye
 
 ### Exclusions
 
-An exclusion entry can take either form, matched case-insensitively:
+An exclusion entry can take any of the following forms, matched case-insensitively with automatic slash normalization:
 
-- a **bare folder name** — `COMP` skips every folder named `COMP`, anywhere in the tree
-- a **full path** — `H:\PX\COMP` skips that one folder and everything beneath it
+- a **bare folder name** — `COMP` skips every folder named `COMP`, anywhere in the tree.
+- a **relative path** — `Season 1` or `Extras/Clips` skips matching subtrees relative to your library root.
+- a **full path** — `H:\PX\COMP` or `D:/Movies/Trailers` skips that specific folder and everything beneath it.
 
 Folders the OS refuses to read are skipped silently rather than aborting the scan.
 
 ## Configuration
 
-Settings are written the moment you change the folder or the exclusion list:
+Settings are saved automatically to your user profile:
 
 | OS | Path |
 | --- | --- |
 | Windows | `%AppData%\IsSubtitled\config.json` |
 | macOS / Linux | `~/.config/IsSubtitled/config.json` |
 
-Delete that file to reset the app to defaults. A corrupt file is ignored rather than fatal.
+Delete that file to reset the app to defaults.
 
-## Known limitations
-
-- Subtitles must match the video's base name **exactly** — `Movie.en.srt` does not satisfy
-  `Movie.mkv`. Multi-language libraries will show false positives.
-- Embedded subtitle tracks muxed into an `.mkv` are not inspected; only sidecar files count.
-- Reveal-in-file-manager selects the file on Windows and macOS, but only opens the containing
-  folder on Linux.
-- Prebuilt binaries are published for `win-x64` only. macOS and Linux run fine from source.
-
-## Building
+## Building & Testing
 
 Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download).
 
+### Run in Development
 ```bash
-dotnet run
+dotnet run --project IsSubtitled.csproj
 ```
 
-Self-contained single-file executable:
-
+### Run Tests
 ```bash
-dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+dotnet test tests/IsSubtitled.Tests/IsSubtitled.Tests.csproj
 ```
 
-The binary lands in `bin/Release/net10.0/win-x64/publish/`. Swap the `-r` value for
-`osx-arm64` or `linux-x64` to target another platform.
+### Publish Self-Contained Binary
+```bash
+dotnet publish IsSubtitled.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish/win-x64
+```
+Swap the `-r` runtime identifier for `osx-arm64`, `osx-x64`, or `linux-x64` to target other platforms.
 
-## Project layout
+## Project Layout
 
 | Path | Responsibility |
 | --- | --- |
-| `Models/SubtitleScanner.cs` | Directory walk and the missing-subtitle rule |
-| `Models/AppConfig.cs` | Loading and saving `config.json` |
-| `Models/Platform.cs` | Reveal-in-file-manager per OS, reusing an open Explorer window |
-| `Styles/Theme.axaml` | Colour, radius and font tokens — the whole palette |
-| `Styles/Controls.axaml` | Control styles built on those tokens |
-| `ViewModels/MainWindowViewModel.cs` | Commands, scan lifecycle, cancellation |
-| `Views/MainWindow.axaml` | The window |
+| `Models/SubtitleScanner.cs` | Recursive directory traversal and subtitle matching logic |
+| `Models/UpdateService.cs` | GitHub Releases API client, background downloader, and restart installer |
+| `Models/AppConfig.cs` | JSON configuration persistence |
+| `Models/Platform.cs` | OS-native file reveal and file-manager integration |
+| `ViewModels/MainWindowViewModel.cs` | MVVM presentation logic, scanning lifecycle, auto-updater bindings |
+| `Views/MainWindow.axaml` | Avalonia desktop view (Earth Ember theme) |
+| `Styles/Theme.axaml` | Color, typography, and shape tokens |
+| `Styles/Controls.axaml` | Control styles and component definitions |
+| `tests/IsSubtitled.Tests/` | xUnit unit and integration test suite |
+| `.github/workflows/` | CI PR verification (`ci.yml`) and automated release pipeline (`release.yml`) |
 
-MVVM via [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet), with Avalonia
-compiled bindings enabled.
+## Releases & CI/CD
 
-## Contributing
-
-Commits follow [Conventional Commits](https://www.conventionalcommits.org/) — the prefix picks
-the next version number, so it matters:
-
-| Prefix | Release |
-| --- | --- |
-| `fix:` | patch |
-| `feat:` | minor |
-| `feat!:` or a `BREAKING CHANGE:` footer | major |
-| `docs:` `chore:` `refactor:` `ci:` | none on its own |
-
-Pull requests run a build with warnings treated as errors and attach the resulting exe as a
-14-day artifact, so reviewers can test the actual binary.
-
-## Releases
-
-Fully automated. Every push to `main` runs
-[release-please](https://github.com/googleapis/release-please-action), which reads the commits
-since the last tag and keeps a release PR open with the next version and a generated
-`CHANGELOG.md`. Merging that PR:
-
-1. bumps `<Version>` in `IsSubtitled.csproj`
-2. commits the updated `CHANGELOG.md`
-3. tags `vX.Y.Z` and publishes the GitHub release
-4. builds the `win-x64` executable and attaches it to that release
+Releases are fully automated via GitHub Actions on every push to `main`:
+1. Calculates Semantic Versioning bumps from Conventional Commits (`feat:` $\rightarrow$ Minor, `fix:` $\rightarrow$ Patch, `BREAKING CHANGE:` $\rightarrow$ Major).
+2. Generates categorised release notes and updates `CHANGELOG.md`.
+3. Tags the commit (`vX.Y.Z`) and pushes to GitHub.
+4. Compiles and packages self-contained single-file release binaries for Windows, Linux, and macOS.
+5. Publishes the GitHub Release with attached binaries.
 
 ## License
 
