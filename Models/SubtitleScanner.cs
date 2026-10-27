@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -36,8 +36,8 @@ public static class SubtitleScanner
 
     public sealed record DirectoryResult(string Directory, IReadOnlyList<VideoFile> Videos);
 
-    /// <param name="excluded">Folders to skip — each entry may be a bare folder name (e.g. "COMP")
-    /// or a full path (e.g. "H:\PX\COMP"). A full path also skips everything beneath it. Case-insensitive.</param>
+    /// <param name="excluded">Folders to skip — each entry may be a bare folder name (e.g. "COMP"),
+    /// a relative path (e.g. "Season 1"), or a full path (e.g. "H:\PX\COMP"). A full or relative path also skips everything beneath it. Case-insensitive.</param>
     /// <param name="progress">Reports the current directory and running counts, once per directory.</param>
     public static List<DirectoryResult> Scan(
         string root,
@@ -46,8 +46,10 @@ public static class SubtitleScanner
         CancellationToken ct)
     {
         var results = new List<DirectoryResult>();
+        if (IsExcluded(root, excluded, root)) return results;
+
         var counters = new Counters();
-        ScanDir(root, excluded, results, counters, progress, ct);
+        ScanDir(root, root, excluded, results, counters, progress, ct);
         return results;
     }
 
@@ -59,30 +61,72 @@ public static class SubtitleScanner
         public int Missing;
     }
 
-    private static bool IsExcluded(string fullPath, IReadOnlySet<string> excluded)
+    private static bool IsExcluded(string fullPath, IReadOnlySet<string> excluded, string root)
     {
-        var name = Path.GetFileName(fullPath);
-        var full = fullPath.TrimEnd('\\', '/');
+        if (excluded.Count == 0) return false;
+
+        string canonicalFull;
+        try
+        {
+            canonicalFull = Path.GetFullPath(fullPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
+        catch
+        {
+            canonicalFull = fullPath.TrimEnd('\\', '/');
+        }
+
+        var leafName = Path.GetFileName(canonicalFull);
+
         foreach (var e in excluded)
         {
             if (string.IsNullOrWhiteSpace(e)) continue;
-            var entry = e.TrimEnd('\\', '/');
 
-            // Bare name match (e.g. "COMP").
-            if (string.Equals(entry, name, StringComparison.OrdinalIgnoreCase)) return true;
+            var trimmed = e.Trim().TrimEnd('\\', '/');
+            if (string.IsNullOrEmpty(trimmed)) continue;
 
-            // Exact full-path match (e.g. "H:\PX\COMP").
-            if (string.Equals(entry, full, StringComparison.OrdinalIgnoreCase)) return true;
+            // 1. Bare folder name (no directory separators) -> match against leaf name
+            if (!trimmed.Contains('\\') && !trimmed.Contains('/'))
+            {
+                if (string.Equals(trimmed, leafName, StringComparison.OrdinalIgnoreCase))
+                    return true;
+                continue;
+            }
 
-            // Inside an excluded path (e.g. "H:\PX\COMP\S" under "H:\PX\COMP").
-            if (full.StartsWith(entry + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ||
-                full.StartsWith(entry + Path.AltDirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            // 2. Path (absolute or relative to root)
+            string canonicalEntry;
+            try
+            {
+                if (Path.IsPathRooted(trimmed))
+                {
+                    canonicalEntry = Path.GetFullPath(trimmed).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                }
+                else
+                {
+                    canonicalEntry = Path.GetFullPath(Path.Combine(root, trimmed)).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                }
+            }
+            catch
+            {
+                canonicalEntry = trimmed.Replace('/', Path.DirectorySeparatorChar).TrimEnd(Path.DirectorySeparatorChar);
+            }
+
+            // Exact match
+            if (string.Equals(canonicalEntry, canonicalFull, StringComparison.OrdinalIgnoreCase))
                 return true;
+
+            // Subtree match (canonicalFull is a descendant of canonicalEntry)
+            if (canonicalFull.StartsWith(canonicalEntry + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ||
+                canonicalFull.StartsWith(canonicalEntry + Path.AltDirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
         }
+
         return false;
     }
 
     private static void ScanDir(
+        string root,
         string dir,
         IReadOnlySet<string> excluded,
         List<DirectoryResult> results,
@@ -134,8 +178,8 @@ public static class SubtitleScanner
 
         foreach (var sub in subDirs)
         {
-            if (IsExcluded(sub.FullName, excluded)) continue;
-            ScanDir(sub.FullName, excluded, results, counters, progress, ct);
+            if (IsExcluded(sub.FullName, excluded, root)) continue;
+            ScanDir(root, sub.FullName, excluded, results, counters, progress, ct);
         }
     }
 

@@ -21,7 +21,12 @@ jobs:
           dotnet-version: "10.0.x"
 
       - name: Restore
-        run: dotnet restore IsSubtitled.csproj
+        run: |
+          dotnet restore IsSubtitled.csproj
+          dotnet restore tests/IsSubtitled.Tests/IsSubtitled.Tests.csproj
+
+      - name: Test
+        run: dotnet test tests/IsSubtitled.Tests/IsSubtitled.Tests.csproj --no-restore --nologo
 
       - name: Build
         run: dotnet build IsSubtitled.csproj -c Release --no-restore --nologo -warnaserror

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -34,14 +34,19 @@ public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly AppConfig _config = AppConfig.Load();
     private readonly Stopwatch _stopwatch = new();
+    private readonly UpdateService _updateService;
     private IUiServices? _ui;
     private CancellationTokenSource? _cts;
 
-    public MainWindowViewModel()
+    public MainWindowViewModel(UpdateService? updateService = null)
     {
+        _updateService = updateService ?? new UpdateService();
         SelectedFolder = _config.LastPath;
         foreach (var d in _config.ExcludedDirs)
             ExcludedDirs.Add(d);
+
+        // Check for updates quietly in background on launch
+        _ = CheckForUpdatesQuietlyAsync();
     }
 
     /// <summary>Set by the View once it's constructed.</summary>
@@ -115,7 +120,7 @@ public partial class MainWindowViewModel : ViewModelBase
     /// <summary>The header pill: "42 missing | 8 folders | 4.2s elapsed".</summary>
     public string SummaryText => $"{MissingFound} missing  |  {FoldersScanned} folders  |  {ElapsedText} elapsed";
 
-    /// <summary>Folders walked most recently, newest last — the live list during a scan.</summary>
+    /// <summary>Folders walked most recently, newest last â€” the live list during a scan.</summary>
     public ObservableCollection<string> RecentDirectories { get; } = new();
 
     // ---- Results -------------------------------------------------------
@@ -123,7 +128,7 @@ public partial class MainWindowViewModel : ViewModelBase
     /// <summary>Every group the scan produced. Source of truth; never filtered in place.</summary>
     private readonly List<DirectoryGroup> _allResults = new();
 
-    /// <summary>What the view binds to — <see cref="_allResults"/> after filter and sort.</summary>
+    /// <summary>What the view binds to â€” <see cref="_allResults"/> after filter and sort.</summary>
     public ObservableCollection<DirectoryGroup> Results { get; } = new();
 
     [ObservableProperty]
@@ -151,7 +156,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         if (filter.Length > 0)
         {
-            // Keep a group when its path matches, or when any of its files do —
+            // Keep a group when its path matches, or when any of its files do â€”
             // in the latter case only the matching files are shown.
             groups = _allResults
                 .Select(g => g.Directory.Contains(filter, StringComparison.OrdinalIgnoreCase)
@@ -230,6 +235,10 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanScan))]
     private async Task ScanAsync()
     {
+        if (!string.IsNullOrWhiteSpace(NewExcluded))
+        {
+            AddExcluded();
+        }
         var root = SelectedFolder;
         if (string.IsNullOrWhiteSpace(root) || !Directory.Exists(root))
         {
@@ -240,7 +249,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         // The scanner deliberately skips unreadable folders so one bad subfolder can't
-        // abort a scan — which would make a denied *root* look like a clean result.
+        // abort a scan â€” which would make a denied *root* look like a clean result.
         // Probe it up front so that case surfaces as an error instead.
         try
         {
@@ -399,5 +408,146 @@ public partial class MainWindowViewModel : ViewModelBase
         if (_ui is null || string.IsNullOrEmpty(path)) return;
         await _ui.SetClipboardAsync(path);
         Status = $"Copied: {path}";
+    }
+
+    // ---- Auto-update ----------------------------------------------------
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsCheckingUpdates), nameof(IsUpdateAvailable),
+        nameof(IsDownloadingUpdate), nameof(IsUpdateReady))]
+    private UpdateStatus _updateStatus = UpdateStatus.Idle;
+
+    public bool IsCheckingUpdates => UpdateStatus == UpdateStatus.Checking;
+    public bool IsUpdateAvailable => UpdateStatus == UpdateStatus.UpdateAvailable;
+    public bool IsDownloadingUpdate => UpdateStatus == UpdateStatus.Downloading;
+    public bool IsUpdateReady => UpdateStatus == UpdateStatus.ReadyToInstall;
+
+    [ObservableProperty]
+    private UpdateInfo? _availableUpdate;
+
+    [ObservableProperty]
+    private double _updateProgress;
+
+    [ObservableProperty]
+    private string _updateStatusText = string.Empty;
+
+    [ObservableProperty]
+    private bool _showUpdateBanner;
+
+    [ObservableProperty]
+    private string _downloadedUpdatePath = string.Empty;
+
+    public string CurrentVersionDisplay => $"v{AppVersion.Current}";
+
+    private async Task CheckForUpdatesQuietlyAsync()
+    {
+        try
+        {
+            var update = await _updateService.CheckForUpdateAsync();
+            if (update is not null)
+            {
+                AvailableUpdate = update;
+                UpdateStatus = UpdateStatus.UpdateAvailable;
+                UpdateStatusText = $"Version {update.Tag} is available!";
+                ShowUpdateBanner = true;
+            }
+        }
+        catch
+        {
+            // Offline / silent
+        }
+    }
+
+    [RelayCommand]
+    public async Task CheckForUpdatesAsync()
+    {
+        UpdateStatus = UpdateStatus.Checking;
+        UpdateStatusText = "Checking for updates...";
+        ShowUpdateBanner = true;
+
+        try
+        {
+            var update = await _updateService.CheckForUpdateAsync();
+            if (update is not null)
+            {
+                AvailableUpdate = update;
+                UpdateStatus = UpdateStatus.UpdateAvailable;
+                UpdateStatusText = $"Version {update.Tag} is available!";
+            }
+            else
+            {
+                UpdateStatus = UpdateStatus.UpToDate;
+                UpdateStatusText = $"You're on the latest version (v{AppVersion.Current}).";
+            }
+        }
+        catch (Exception ex)
+        {
+            UpdateStatus = UpdateStatus.Error;
+            UpdateStatusText = $"Update check failed: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    public async Task DownloadUpdateAsync()
+    {
+        if (AvailableUpdate is null) return;
+
+        UpdateStatus = UpdateStatus.Downloading;
+        UpdateProgress = 0;
+        UpdateStatusText = $"Downloading {AvailableUpdate.Tag} in background...";
+
+        var progress = new Progress<double>(p =>
+        {
+            UpdateProgress = p;
+        });
+
+        try
+        {
+            var path = await _updateService.DownloadUpdateAsync(AvailableUpdate, progress);
+            DownloadedUpdatePath = path;
+            UpdateStatus = UpdateStatus.ReadyToInstall;
+            UpdateStatusText = $"Version {AvailableUpdate.Tag} ready to install.";
+        }
+        catch (Exception ex)
+        {
+            UpdateStatus = UpdateStatus.Error;
+            UpdateStatusText = $"Download failed: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    public void ApplyUpdate()
+    {
+        if (string.IsNullOrEmpty(DownloadedUpdatePath)) return;
+        try
+        {
+            _updateService.ApplyUpdateAndRestart(DownloadedUpdatePath);
+        }
+        catch (Exception ex)
+        {
+            UpdateStatus = UpdateStatus.Error;
+            UpdateStatusText = $"Update failed to launch: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    public void DismissUpdate()
+    {
+        ShowUpdateBanner = false;
+    }
+
+    [RelayCommand]
+    public void ViewReleaseNotes()
+    {
+        if (AvailableUpdate is null) return;
+        var url = !string.IsNullOrEmpty(AvailableUpdate.HtmlUrl)
+            ? AvailableUpdate.HtmlUrl
+            : $"https://github.com/gitnasr/is-subtitled/releases/tag/{AvailableUpdate.Tag}";
+
+        try
+        {
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+        }
+        catch { }
     }
 }

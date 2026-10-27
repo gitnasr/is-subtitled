@@ -1,4 +1,25 @@
-# Changelog
+﻿# Changelog
+
+## [2.3.0](https://github.com/gitnasr/is-subtitled/compare/v2.2.0...v2.3.0) (2026-10-27)
+
+### Features
+* Introduce in-app auto-update from GitHub Releases with background download and restart installer
+* Add interactive update notification banner and header version check pill
+* Add explicit "Add" button and auto-commit pending input for folder exclusions
+
+### Bug Fixes
+* Fix folder exclusion matching by canonicalizing path separators and supporting relative paths
+* Fix root folder exclusion boundary check to prevent traversal when root itself is excluded
+
+### Documentation & Architecture
+* Add ADR-0001, ADR-0002, and ADR-0003
+* Add domain ubiquitous language in GLOSSARY.md
+* Add agent guide AGENTS.md and project architecture skill
+
+### Testing & CI/CD
+* Add comprehensive xUnit test suite (18 tests)
+* Integrate automated PR test validation in ci.yml and release pipeline in release.yml
+
 
 ## [2.1.1](https://github.com/gitnasr/is-subtitled/compare/v2.1.0...v2.1.1) (2026-09-01)
 
@@ -31,3 +52,4 @@
 ### Build & CI
 
 * replace the Python pipeline with automated .NET releases ([0b6556c](https://github.com/gitnasr/is-subtitled/commit/0b6556c8589f692f60c991a1bb3164105ade43a9))
+

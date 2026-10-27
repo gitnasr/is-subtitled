@@ -1,0 +1,3 @@
+﻿# Decoupled app and landing workspaces in project root
+
+The desktop application is built with .NET 10 and Avalonia, while the marketing and distribution landing site will be developed as a modern web frontend. We decided to maintain decoupled sibling directories (pp/ and landing/) under the project root rather than nesting the landing page inside the C# repository. This isolates dependencies, build tools, CI/CD workflows, and release cycles.

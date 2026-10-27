@@ -1,0 +1,3 @@
+﻿# Sidecar-only subtitle detection over container stream probing
+
+Scanning media libraries for embedded subtitle streams requires container probing (such as FFprobe or EBML header parsing), which degrades scan performance by up to 50x on multi-terabyte drives and network shares. We decided to restrict subtitle detection strictly to filesystem sidecar files (.srt, .ass, .ssa, .sub). This preserves instant recursive enumeration with zero native binary dependencies and a minimal memory footprint.

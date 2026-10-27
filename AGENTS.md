@@ -19,7 +19,7 @@ D:\Coding\Is Subtitled Project\
 │   ├── .github/
 │   │   ├── workflows/      # CI (ci.yml) and Automated Release (release.yml)
 │   │   └── scripts/        # Release automation (calculate-version.mjs, generate-release-notes.mjs, release-lib.mjs)
-│   ├── Models/             # Domain logic (SubtitleScanner, AppConfig, Platform)
+│   ├── Models/             # Domain logic (SubtitleScanner, AppConfig, Platform, UpdateService)
 │   ├── ViewModels/         # MVVM presentation layer
 │   ├── Views/              # Avalonia XAML UI
 │   ├── Styles/             # Earth Ember design system
@@ -81,6 +81,7 @@ D:\Coding\Is Subtitled Project\
   - Directory traversal must use `DirectoryInfo` (not `Directory.GetFiles`) for zero-allocation metadata on Windows.
   - Cancellable via `CancellationToken`.
   - Progress reporting throttled to once per directory (`IProgress<ScanProgress>`) to prevent UI dispatch flooding.
+- **Auto-Update**: Direct GitHub Releases polling, background streaming download with progress reporting, and non-blocking process replacement (per ADR-0003).
 - **Theme**: Earth Ember dark theme defined in `Styles/Theme.axaml` and `Styles/Controls.axaml`. Avoid hardcoded HEX colors in views.
 - **Platform Interop**: File reveal and path operations are abstracted through `IUiServices` and `Models/Platform.cs` for cross-platform compatibility (Windows Explorer, macOS Finder, Linux dbus/xdg-open).
 
@@ -94,6 +95,9 @@ Run from `D:\Coding\Is Subtitled Project\app`:
 # Build application
 dotnet build IsSubtitled.csproj
 
+# Run test suite
+dotnet test tests/IsSubtitled.Tests/IsSubtitled.Tests.csproj
+
 # Run in development mode
 dotnet run --project IsSubtitled.csproj
 
@@ -103,3 +107,5 @@ dotnet publish IsSubtitled.csproj -c Release -r win-x64 --self-contained true -p
 # Test version calculation locally
 node .github/scripts/calculate-version.mjs
 ```
+
+

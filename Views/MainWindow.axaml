@@ -1,4 +1,4 @@
-<Window xmlns="https://github.com/avaloniaui"
+﻿<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:IsSubtitled.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -52,7 +52,7 @@
                     <Border DockPanel.Dock="Bottom" Padding="16,12"
                             BorderBrush="{DynamicResource OutlineVariant}" BorderThickness="0,1,0,0">
                         <Grid ColumnDefinitions="*,Auto">
-                            <Button Grid.Column="0" Classes="ghost" Content="Save results…"
+                            <Button Grid.Column="0" Classes="ghost" Content="Save resultsâ€¦"
                                     HorizontalAlignment="Left" Command="{Binding SaveCommand}"/>
                             <Button Grid.Column="1" Classes="primary" Content="Scan"
                                     IsVisible="{Binding !IsScanning}" Command="{Binding ScanCommand}"/>
@@ -74,7 +74,7 @@
                                                TextTrimming="CharacterEllipsis"
                                                ToolTip.Tip="{Binding FolderDisplay}"/>
                                 </Border>
-                                <Button Classes="ghost" Content="Choose folder…"
+                                <Button Classes="ghost" Content="Choose folderâ€¦"
                                         HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                                         Command="{Binding PickFolderCommand}"/>
                             </StackPanel>
@@ -100,7 +100,7 @@
                                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                                     <TextBlock Text="{Binding}" FontSize="12"
                                                                VerticalAlignment="Center"/>
-                                                    <Button Classes="icon" Content="✕" Padding="2,0" FontSize="10"
+                                                    <Button Classes="icon" Content="âœ•" Padding="2,0" FontSize="10"
                                                             ToolTip.Tip="Remove"
                                                             Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).RemoveExcludedCommand}"
                                                             CommandParameter="{Binding}"/>
@@ -165,7 +165,7 @@
                             BorderBrush="{DynamicResource OutlineVariant}" BorderThickness="0,0,0,1">
                         <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
                             <TextBox Grid.Column="0" Text="{Binding FilterText}"
-                                     PlaceholderText="Filter by file or folder name…"/>
+                                     PlaceholderText="Filter by file or folder nameâ€¦"/>
                             <TextBlock Grid.Column="1" Text="Sort by" Classes="muted"
                                        VerticalAlignment="Center" FontSize="12"/>
                             <ComboBox Grid.Column="2" SelectedIndex="{Binding SortIndex}" MinWidth="130">
@@ -184,7 +184,7 @@
                             <Border Width="96" Height="96" CornerRadius="100"
                                     BorderBrush="{DynamicResource OutlineVariant}" BorderThickness="1"
                                     HorizontalAlignment="Center">
-                                <TextBlock Text="⌕" FontSize="40" Classes="muted"
+                                <TextBlock Text="âŒ•" FontSize="40" Classes="muted"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <TextBlock Text="Ready to scan" FontSize="17" FontWeight="SemiBold"
@@ -219,7 +219,7 @@
                                 <Border Background="{DynamicResource SurfaceContainer}" CornerRadius="6"
                                         Padding="12,10" Margin="0,4,0,0">
                                     <Grid ColumnDefinitions="Auto,*">
-                                        <TextBlock Grid.Column="0" Text="●" Foreground="{DynamicResource Primary}"
+                                        <TextBlock Grid.Column="0" Text="â—" Foreground="{DynamicResource Primary}"
                                                    VerticalAlignment="Center" Margin="0,0,10,0"/>
                                         <TextBlock Grid.Column="1" Classes="mono"
                                                    Text="{Binding CurrentDirectory}"
@@ -282,7 +282,7 @@
                                                                TextTrimming="CharacterEllipsis"
                                                                VerticalAlignment="Center"/>
 
-                                                    <Button Grid.Column="3" Classes="icon" Content="⧉"
+                                                    <Button Grid.Column="3" Classes="icon" Content="â§‰"
                                                             ToolTip.Tip="Copy folder path"
                                                             Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).CopyPathCommand}"
                                                             CommandParameter="{Binding Directory}"/>
@@ -319,11 +319,11 @@
 
                                                                 <StackPanel Grid.Column="2" x:Name="RowActions"
                                                                             Orientation="Horizontal" Spacing="2">
-                                                                    <Button Classes="icon" Content="⧉"
+                                                                    <Button Classes="icon" Content="â§‰"
                                                                             ToolTip.Tip="Copy full path"
                                                                             Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).CopyPathCommand}"
                                                                             CommandParameter="{Binding FullPath}"/>
-                                                                    <Button Classes="icon" Content="↗"
+                                                                    <Button Classes="icon" Content="â†—"
                                                                             ToolTip.Tip="Reveal in file manager"
                                                                             Command="{Binding #Root.((vm:MainWindowViewModel)DataContext).OpenInExplorerCommand}"
                                                                             CommandParameter="{Binding}"/>
@@ -348,7 +348,7 @@
                                 <Border Width="88" Height="88" CornerRadius="100"
                                         Background="{DynamicResource PrimaryDim}"
                                         HorizontalAlignment="Center">
-                                    <TextBlock Text="✓" FontSize="38" Foreground="{DynamicResource Primary}"
+                                    <TextBlock Text="âœ“" FontSize="38" Foreground="{DynamicResource Primary}"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
                                 <TextBlock Text="Everything is subtitled." FontSize="18" FontWeight="SemiBold"
@@ -389,3 +389,5 @@
         </Grid>
     </DockPanel>
 </Window>
+
+

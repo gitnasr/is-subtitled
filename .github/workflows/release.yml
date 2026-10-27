@@ -101,6 +101,10 @@ jobs:
         run: |
           node .github/scripts/generate-release-notes.mjs "${{ steps.semver.outputs.prev_tag }}" "${{ steps.semver.outputs.tag }}" --update-changelog=false --out=release-notes.md
 
+      - name: Run Test Suite
+        if: steps.semver.outputs.should_release == 'true'
+        run: dotnet test tests/IsSubtitled.Tests/IsSubtitled.Tests.csproj --nologo
+
       - name: Build Windows Executable (Self-Contained)
         if: steps.semver.outputs.should_release == 'true'
         run: >
@@ -157,3 +161,4 @@ jobs:
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "`n#### Release Notes:`n"
             Get-Content release-notes.md | Add-Content -Path $env:GITHUB_STEP_SUMMARY
           }
+
