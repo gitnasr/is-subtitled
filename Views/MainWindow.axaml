@@ -19,22 +19,72 @@
 
     <DockPanel>
 
-        <!-- Header: identity on the left, scan summary pill on the right -->
+        <!-- Header: identity & version pill on the left, scan summary & update check on the right -->
         <Border DockPanel.Dock="Top" Padding="20,14"
                 BorderBrush="{DynamicResource OutlineVariant}" BorderThickness="0,0,0,1">
             <Grid ColumnDefinitions="Auto,*,Auto">
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
                     <TextBlock Text="Is Subtitled" FontSize="18" FontWeight="Bold"
                                Foreground="{DynamicResource Primary}"/>
+                    <Button Classes="ghost" Padding="8,2" CornerRadius="100"
+                            Command="{Binding CheckForUpdatesCommand}"
+                            ToolTip.Tip="Click to check for updates on GitHub">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <TextBlock Classes="mono" Text="{Binding CurrentVersionDisplay}" FontSize="11"
+                                       VerticalAlignment="Center"/>
+                            <TextBlock Text="&#x21BB;" FontSize="11" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource Primary}"/>
+                        </StackPanel>
+                    </Button>
                     <TextBlock Text="Find video files missing a matching subtitle."
                                Classes="muted" VerticalAlignment="Center"/>
                 </StackPanel>
 
-                <Border Grid.Column="2" Classes="chip-static" Padding="12,5"
-                        IsVisible="{Binding ShowSummary}">
-                    <TextBlock Classes="mono" Text="{Binding SummaryText}"
-                               Foreground="{DynamicResource OnSurfaceVariant}"/>
-                </Border>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Border Classes="chip-static" Padding="12,5"
+                            IsVisible="{Binding ShowSummary}">
+                        <TextBlock Classes="mono" Text="{Binding SummaryText}"
+                                   Foreground="{DynamicResource OnSurfaceVariant}"/>
+                    </Border>
+                    <Button Classes="ghost" Content="Check for updates" Padding="10,4" FontSize="12"
+                            Command="{Binding CheckForUpdatesCommand}"
+                            IsEnabled="{Binding !IsCheckingUpdates}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Inline Auto-Update Banner -->
+        <Border DockPanel.Dock="Top"
+                IsVisible="{Binding ShowUpdateBanner}"
+                Background="{DynamicResource SurfaceContainer}"
+                BorderBrush="{DynamicResource OutlineVariant}"
+                BorderThickness="0,0,0,1"
+                Padding="20,10">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                <TextBlock Grid.Column="0" Text="&#x2B06;" FontSize="16"
+                           Foreground="{DynamicResource Primary}"
+                           VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding UpdateStatusText}" FontWeight="SemiBold" FontSize="13"/>
+                    <ProgressBar IsVisible="{Binding IsDownloadingUpdate}"
+                                 Minimum="0" Maximum="100"
+                                 Value="{Binding UpdateProgress}"
+                                 Height="4"
+                                 Foreground="{DynamicResource Primary}"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button Classes="ghost" Content="Release notes" Padding="10,4" FontSize="12"
+                            IsVisible="{Binding AvailableUpdate, Converter={x:Static ObjectConverters.IsNotNull}}"
+                            Command="{Binding ViewReleaseNotesCommand}"/>
+                    <Button Classes="primary" Content="Download in Background" Padding="12,4" FontSize="12"
+                            IsVisible="{Binding IsUpdateAvailable}"
+                            Command="{Binding DownloadUpdateCommand}"/>
+                    <Button Classes="primary" Content="Restart &amp; Install" Padding="12,4" FontSize="12"
+                            IsVisible="{Binding IsUpdateReady}"
+                            Command="{Binding ApplyUpdateCommand}"/>
+                    <Button Classes="icon" Content="&#x2715;" ToolTip.Tip="Dismiss"
+                            Command="{Binding DismissUpdateCommand}"/>
+                </StackPanel>
             </Grid>
         </Border>
 
@@ -82,12 +132,16 @@
                             <!-- Exclusions -->
                             <StackPanel Spacing="6">
                                 <TextBlock Classes="field-label" Text="Excluded folder names"/>
-                                <TextBox Text="{Binding NewExcluded}"
-                                         PlaceholderText="Name or full path, comma separated">
-                                    <TextBox.KeyBindings>
-                                        <KeyBinding Gesture="Enter" Command="{Binding AddExcludedCommand}"/>
-                                    </TextBox.KeyBindings>
-                                </TextBox>
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                                    <TextBox Grid.Column="0" Text="{Binding NewExcluded}"
+                                             PlaceholderText="Name, relative subpath, or full path">
+                                        <TextBox.KeyBindings>
+                                            <KeyBinding Gesture="Enter" Command="{Binding AddExcludedCommand}"/>
+                                        </TextBox.KeyBindings>
+                                    </TextBox>
+                                    <Button Grid.Column="1" Classes="ghost" Content="Add"
+                                            Command="{Binding AddExcludedCommand}"/>
+                                </Grid>
                                 <ItemsControl ItemsSource="{Binding ExcludedDirs}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>

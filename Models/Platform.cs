@@ -149,4 +149,18 @@ public static class Platform
     [SupportedOSPlatform("windows")]
     [DllImport("user32.dll")]
     private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    /// <summary>Opens an HTTP/HTTPS URL in the system default browser.</summary>
+    public static void OpenUrl(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return;
+        try
+        {
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+        }
+        catch
+        {
+            // Ignore browser launch errors
+        }
+    }
 }

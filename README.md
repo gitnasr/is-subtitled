@@ -55,7 +55,7 @@ To run from source instead, see [Building](#building).
 2. **Exclude folders** *(optional)* — type a folder name, relative subpath, or full path and click **Add** or press <kbd>Enter</kbd>. Separate several with commas or semicolons to add them in one go. Entries show as removable chips. Any pending text left in the input box is automatically committed upon clicking **Scan**.
 3. **Scan** — runs in the background and can be cancelled mid-scan. While it runs you see live counters of folders walked, files examined, and missing subtitles found.
 4. **Act on the results** — videos are grouped by folder, each group collapsible and badged with its file count and size. Filter by name and sort by folder, file count, or total size. Click a filename to reveal it in your file manager, click a folder header to open it, or use the copy button for either path. **Save results…** exports a plain-text report.
-5. **Check for updates** — click the version pill in the top header (e.g. `v2.3.2`) at any time to verify against the latest GitHub release. When an update is ready, click **Download in Background**, then **Restart & Install**.
+5. **Check for updates** — click the version pill in the top header (e.g. `v2.3.4`) at any time to verify against the latest GitHub release. When an update is ready, click **Download in Background**, then **Restart & Install**.
 
 ### How a video counts as "missing subtitles"
 

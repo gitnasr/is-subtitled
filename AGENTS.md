@@ -14,7 +14,7 @@
 D:\Coding\Is Subtitled Project\
 ├── GLOSSARY.md             # Canonical ubiquitous domain vocabulary
 ├── docs/                   # Architectural decisions (ADRs) and shared documentation
-│   └── adr/                # 0001-..., 0002-...
+│   └── adr/                # 0001-..., 0002-..., 0003-...
 ├── app/                    # Production C# / Avalonia 12 / .NET 10 desktop application (git repo gitnasr/is-subtitled)
 │   ├── .github/
 │   │   ├── workflows/      # CI (ci.yml) and Automated Release (release.yml)
@@ -22,6 +22,7 @@ D:\Coding\Is Subtitled Project\
 │   ├── Models/             # Domain logic (SubtitleScanner, AppConfig, Platform, UpdateService)
 │   ├── ViewModels/         # MVVM presentation layer
 │   ├── Views/              # Avalonia XAML UI
+│   ├── tests/              # xUnit unit & UI contract test suite
 │   ├── Styles/             # Earth Ember design system
 │   ├── CHANGELOG.md        # Automatically synchronized changelog
 │   └── IsSubtitled.csproj  # .NET 10 single-file compilation target

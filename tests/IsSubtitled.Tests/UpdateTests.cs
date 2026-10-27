@@ -1,5 +1,11 @@
-﻿using System;
+using System;
+using System.IO;
+using System.Net;
+using System.Net.Http;
+using System.Text;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using IsSubtitled.Models;
 using Xunit;
 
@@ -55,9 +61,42 @@ public class UpdateTests
         Assert.Equal("v2.2.0", update.Tag);
         Assert.Equal("Release v2.2.0", update.Title);
         Assert.Contains("Auto-updater introduced", update.ReleaseNotes);
-        Assert.Equal("IsSubtitled.exe", update.AssetName);
-        Assert.Equal(103615037, update.AssetSize);
-        Assert.Equal("https://github.com/gitnasr/is-subtitled/releases/download/v2.2.0/IsSubtitled.exe", update.DownloadUrl);
+        Assert.NotEmpty(update.AssetName);
+        Assert.True(update.AssetSize > 0);
+        Assert.StartsWith("https://github.com/gitnasr/is-subtitled/releases/download/v2.2.0/", update.DownloadUrl);
+    }
+
+    [Fact]
+    public void PickBestAsset_SelectsCorrectPlatformAsset()
+    {
+        var assetsJson = """
+        [
+          {
+            "name": "IsSubtitled.exe",
+            "size": 100,
+            "browser_download_url": "https://example.com/IsSubtitled.exe"
+          },
+          {
+            "name": "IsSubtitled-linux-x64.tar.gz",
+            "size": 200,
+            "browser_download_url": "https://example.com/IsSubtitled-linux-x64.tar.gz"
+          },
+          {
+            "name": "IsSubtitled-osx-arm64.tar.gz",
+            "size": 300,
+            "browser_download_url": "https://example.com/IsSubtitled-osx-arm64.tar.gz"
+          }
+        ]
+        """;
+
+        using var doc = JsonDocument.Parse(assetsJson);
+        var winAsset = UpdateService.PickBestAsset(doc.RootElement, isWindowsOverride: true, isMacOverride: false, isArmOverride: false);
+        var linuxAsset = UpdateService.PickBestAsset(doc.RootElement, isWindowsOverride: false, isMacOverride: false, isArmOverride: false);
+        var macArmAsset = UpdateService.PickBestAsset(doc.RootElement, isWindowsOverride: false, isMacOverride: true, isArmOverride: true);
+
+        Assert.Equal("IsSubtitled.exe", winAsset?.Name);
+        Assert.Equal("IsSubtitled-linux-x64.tar.gz", linuxAsset?.Name);
+        Assert.Equal("IsSubtitled-osx-arm64.tar.gz", macArmAsset?.Name);
     }
 
     [Fact]
@@ -85,16 +124,77 @@ public class UpdateTests
     }
 
     [Fact]
-    public async Task LiveCheck_DetectsNewerReleaseAgainstRealGitHubRepo()
+    public async Task CheckForUpdateAsync_DetectsNewerReleaseViaHttpClient()
     {
-        var service = new UpdateService();
-        // Compare against a simulated older version "1.0.0"
-        var update = await service.CheckForUpdateAsync("1.0.0");
+        var sampleJson = """
+        {
+          "tag_name": "v2.4.0",
+          "name": "Release v2.4.0",
+          "body": "### Bug Fixes\n* Restored header version pill",
+          "html_url": "https://github.com/gitnasr/is-subtitled/releases/tag/v2.4.0",
+          "published_at": "2026-10-27T15:00:00Z",
+          "assets": [
+            {
+              "name": "IsSubtitled.exe",
+              "size": 50000,
+              "browser_download_url": "https://github.com/gitnasr/is-subtitled/releases/download/v2.4.0/IsSubtitled.exe"
+            }
+          ]
+        }
+        """;
+
+        using var httpClient = new HttpClient(new StubHttpMessageHandler(sampleJson));
+        var service = new UpdateService(httpClient);
+        var update = await service.CheckForUpdateAsync("2.3.1");
 
         Assert.NotNull(update);
-        Assert.NotEmpty(update.Version);
-        Assert.NotEmpty(update.DownloadUrl);
-        Assert.True(update.AssetSize > 0);
+        Assert.Equal("2.4.0", update.Version);
+        Assert.Equal("v2.4.0", update.Tag);
+        Assert.Equal(50000, update.AssetSize);
     }
 
+    [Fact]
+    public void MainWindowAxaml_BindsVersionPillUpdateBannerAndAddExcludedButton()
+    {
+        var axamlPath = Path.GetFullPath(
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "Views", "MainWindow.axaml"));
+        Assert.True(File.Exists(axamlPath), $"MainWindow.axaml not found at {axamlPath}");
+
+        var axaml = File.ReadAllText(axamlPath);
+
+        // 1. Header version pill & check for updates command
+        Assert.Contains("CurrentVersionDisplay", axaml);
+        Assert.Contains("CheckForUpdatesCommand", axaml);
+
+        // 2. Inline update notification banner, progress bar, and actions
+        Assert.Contains("ShowUpdateBanner", axaml);
+        Assert.Contains("UpdateStatusText", axaml);
+        Assert.Contains("UpdateProgress", axaml);
+        Assert.Contains("DownloadUpdateCommand", axaml);
+        Assert.Contains("ApplyUpdateCommand", axaml);
+        Assert.Contains("DismissUpdateCommand", axaml);
+        Assert.Contains("ViewReleaseNotesCommand", axaml);
+
+        // 3. Explicit "Add" button for folder exclusions
+        Assert.Contains("Content=\"Add\"", axaml);
+
+        // 4. Invariant 3: 100% 7-bit ASCII in MainWindow.axaml (except optional UTF-8 BOM at index 0)
+        for (int i = 0; i < axaml.Length; i++)
+        {
+            char c = axaml[i];
+            if (i == 0 && c == '\uFEFF') continue;
+            Assert.True(c <= 127, $"Non-ASCII character U+{(int)c:X4} found in MainWindow.axaml at index {i}");
+        }
+    }
+
+    private sealed class StubHttpMessageHandler(string responseBody) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(responseBody, Encoding.UTF8, "application/json")
+            });
+        }
+    }
 }

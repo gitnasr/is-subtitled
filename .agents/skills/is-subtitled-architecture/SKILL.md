@@ -14,7 +14,8 @@ D:\Coding\Is Subtitled Project\
 ├── GLOSSARY.md                                       # Canonical domain terms
 ├── docs/adr/                                         # Architectural Decision Records
 │   ├── 0001-sidecar-only-subtitle-detection.md
-│   └── 0002-decoupled-app-and-landing-workspaces.md
+│   ├── 0002-decoupled-app-and-landing-workspaces.md
+│   └── 0003-direct-github-releases-auto-updater.md
 ├── app/                                              # Avalonia desktop application (git repo gitnasr/is-subtitled)
 │   ├── .github/
 │   │   ├── workflows/
@@ -36,6 +37,7 @@ D:\Coding\Is Subtitled Project\
 │   │   └── Converters.cs                             # UI formatting (byte size formatting, etc.)
 │   ├── Views/                                        # Avalonia XAML UI
 │   │   └── MainWindow.axaml                          # Split-pane layout (config left, results right)
+│   ├── tests/IsSubtitled.Tests/                      # xUnit test suite
 │   ├── Styles/                                       # Earth Ember design system
 │   │   ├── Theme.axaml                               # Semantic palette & color resources
 │   │   └── Controls.axaml                            # Custom control styles
@@ -99,6 +101,8 @@ D:\Coding\Is Subtitled Project\
   - `ResultsFilter`: Dynamic case-insensitive substring search across filename and directory path.
   - `ResultsSortOrder`: Sort by `Folder` (alphabetical), `FileCount` (descending), or `TotalSize` (descending).
 - **Styling**: Earth Ember dark theme defined in `Styles/Theme.axaml`.
+- **Encoding & UI Symbols**: Avalonia XAML files must use XML numeric character entities (`&#x2026;`, `&#x2715;`, `&#x29C9;`, `&#x2197;`, `&#x2713;`, `&#x2315;`, `&#x25CF;`) and C# files must use Unicode escapes (`\u25BE`, `\u25B8`, `\u2014`) to prevent Windows ANSI/CP1252 mojibake.
+
 
 ## 5. Development Commands
 
@@ -116,5 +120,6 @@ dotnet run --project IsSubtitled.csproj
 # Publish self-contained Windows executable
 dotnet publish IsSubtitled.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish/win-x64
 ```
+
 
 

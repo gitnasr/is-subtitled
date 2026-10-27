@@ -155,11 +155,15 @@ public class UpdateService
             PublishedAt: publishedAt);
     }
 
-    public static (string Name, string Url, long Size)? PickBestAsset(JsonElement assets)
+    public static (string Name, string Url, long Size)? PickBestAsset(
+        JsonElement assets,
+        bool? isWindowsOverride = null,
+        bool? isMacOverride = null,
+        bool? isArmOverride = null)
     {
-        var isWindows = OperatingSystem.IsWindows();
-        var isMac = OperatingSystem.IsMacOS();
-        var isArm = RuntimeInformation.ProcessArchitecture == Architecture.Arm64;
+        var isWindows = isWindowsOverride ?? OperatingSystem.IsWindows();
+        var isMac = isMacOverride ?? OperatingSystem.IsMacOS();
+        var isArm = isArmOverride ?? (RuntimeInformation.ProcessArchitecture == Architecture.Arm64);
 
         (string Name, string Url, long Size)? candidate = null;
 
@@ -275,7 +279,23 @@ public class UpdateService
             // Unix/macOS: replace binary and restart
             try
             {
-                File.Copy(downloadedFilePath, currentExePath, true);
+                var binaryToCopy = downloadedFilePath;
+                if (downloadedFilePath.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase))
+                {
+                    var extractDir = Path.Combine(Path.GetDirectoryName(downloadedFilePath)!, "extracted");
+                    Directory.CreateDirectory(extractDir);
+                    using var tarProc = Process.Start(new ProcessStartInfo("tar", $"-xzf \"{downloadedFilePath}\" -C \"{extractDir}\"")
+                    {
+                        CreateNoWindow = true,
+                        UseShellExecute = false
+                    });
+                    tarProc?.WaitForExit(15000);
+                    var extractedBin = Path.Combine(extractDir, "IsSubtitled");
+                    if (File.Exists(extractedBin))
+                        binaryToCopy = extractedBin;
+                }
+
+                File.Copy(binaryToCopy, currentExePath, true);
                 Process.Start(currentExePath);
                 Environment.Exit(0);
             }

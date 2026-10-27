@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.4](https://github.com/gitnasr/is-subtitled/compare/v2.3.3...v2.3.4) (2026-10-27)
+
+### Bug Fixes
+* Restore header version pill (`v2.3.4`), **Check for updates** button, inline auto-update notification banner with download progress bar and **Restart & Install** button, and folder exclusion **Add** button in `Views/MainWindow.axaml` (accidentally overwritten during `v2.3.2` encoding cleanup)
+* Extract `.tar.gz` archives before replacing executable in `UpdateService.ApplyUpdateAndRestart` on Linux and macOS
+* Route release notes browser launch through `Platform.OpenUrl` and add XAML UI contract regression test in `UpdateTests.cs`
+
 ## [2.3.2](https://github.com/gitnasr/is-subtitled/compare/v2.3.1...v2.3.2) (2026-10-27)
 
 ### Bug Fixes
@@ -7,15 +14,11 @@
 * Use Unicode escape sequences in `Converters.cs` (`\u25BE`, `\u25B8`) and `ResultModels.cs` (`\u2014`) for 100% 7-bit ASCII resilience
 * Clean up corrupted doc comment glyphs in `MainWindowViewModel.cs`
 
-# Changelog
-
 ## [2.3.1](https://github.com/gitnasr/is-subtitled/compare/v2.3.0...v2.3.1) (2026-10-27)
 
 ### Changes
 * Automated release for `v2.3.1`.
 
-
-﻿# Changelog
 
 ## [2.3.0](https://github.com/gitnasr/is-subtitled/compare/v2.2.0...v2.3.0) (2026-10-27)
 
@@ -69,4 +72,3 @@
 ### Build & CI
 
 * replace the Python pipeline with automated .NET releases ([0b6556c](https://github.com/gitnasr/is-subtitled/commit/0b6556c8589f692f60c991a1bb3164105ade43a9))
-
