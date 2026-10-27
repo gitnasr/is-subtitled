@@ -1,5 +1,6 @@
-﻿import fs from "node:fs";
+import fs from "node:fs";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 import { buildNotes, changedFiles, getRepoDir, readCommits } from "./release-lib.mjs";
 
 const repoDir = getRepoDir();
@@ -16,13 +17,29 @@ const updateChangelog = hasFlag("update-changelog") || flag("update-changelog") 
 
 const version = tag.replace(/^v/, "");
 
-const commits = readCommits(prev ? `${prev}..${tag}` : tag, repoDir);
-const files = prev ? changedFiles(prev, tag, repoDir) : [];
-const notes = buildNotes(commits, { repo, prev, tag, files });
+function resolveGitRef(ref, fallback = "HEAD") {
+  if (!ref) return fallback;
+  try {
+    execFileSync("git", ["-C", repoDir, "rev-parse", "--verify", ref], { stdio: "ignore" });
+    return ref;
+  } catch {
+    return fallback;
+  }
+}
+
+// When invoked before 'git tag' has been created, 'tag' does not exist as a git ref yet.
+// In that case, fall back to 'HEAD' so all new commits are discovered.
+const gitTarget = resolveGitRef(tag, "HEAD");
+const gitPrev = prev ? resolveGitRef(prev, "") : "";
+const range = gitPrev ? `${gitPrev}..${gitTarget}` : gitTarget;
+
+const commits = readCommits(range, repoDir);
+const files = gitPrev ? changedFiles(gitPrev, gitTarget, repoDir) : [];
+const notes = buildNotes(commits, { repo, prev: gitPrev || prev, tag, files });
 
 const outPath = path.isAbsolute(out) ? out : path.join(repoDir, out);
 fs.writeFileSync(outPath, notes, "utf8");
-console.log(`Wrote ${outPath} (${commits.length} commits, ${prev || "start"}..${tag})`);
+console.log(`Wrote ${outPath} (${commits.length} commits, ${range})`);
 
 // Update CHANGELOG.md if requested
 const changelogPath = path.join(repoDir, "CHANGELOG.md");
