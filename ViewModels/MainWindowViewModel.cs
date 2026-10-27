@@ -120,7 +120,7 @@ public partial class MainWindowViewModel : ViewModelBase
     /// <summary>The header pill: "42 missing | 8 folders | 4.2s elapsed".</summary>
     public string SummaryText => $"{MissingFound} missing  |  {FoldersScanned} folders  |  {ElapsedText} elapsed";
 
-    /// <summary>Folders walked most recently, newest last â€” the live list during a scan.</summary>
+    /// <summary>Folders walked most recently, newest last — the live list during a scan.</summary>
     public ObservableCollection<string> RecentDirectories { get; } = new();
 
     // ---- Results -------------------------------------------------------
@@ -128,7 +128,7 @@ public partial class MainWindowViewModel : ViewModelBase
     /// <summary>Every group the scan produced. Source of truth; never filtered in place.</summary>
     private readonly List<DirectoryGroup> _allResults = new();
 
-    /// <summary>What the view binds to â€” <see cref="_allResults"/> after filter and sort.</summary>
+    /// <summary>What the view binds to — <see cref="_allResults"/> after filter and sort.</summary>
     public ObservableCollection<DirectoryGroup> Results { get; } = new();
 
     [ObservableProperty]
@@ -156,7 +156,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         if (filter.Length > 0)
         {
-            // Keep a group when its path matches, or when any of its files do â€”
+            // Keep a group when its path matches, or when any of its files do —
             // in the latter case only the matching files are shown.
             groups = _allResults
                 .Select(g => g.Directory.Contains(filter, StringComparison.OrdinalIgnoreCase)
@@ -249,7 +249,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         // The scanner deliberately skips unreadable folders so one bad subfolder can't
-        // abort a scan â€” which would make a denied *root* look like a clean result.
+        // abort a scan — which would make a denied *root* look like a clean result.
         // Probe it up front so that case surfaces as an error instead.
         try
         {

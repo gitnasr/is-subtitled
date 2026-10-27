@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.3.2](https://github.com/gitnasr/is-subtitled/compare/v2.3.1...v2.3.2) (2026-10-27)
+
+### Bug Fixes
+* Replace multi-byte UTF-8 glyphs in `Views/MainWindow.axaml` with XML numeric character entities (`&#x2026;`, `&#x2715;`, `&#x29C9;`, `&#x2197;`, `&#x2713;`, `&#x2315;`, `&#x25CF;`) to permanently prevent Windows CP1252/ANSI mojibake
+* Use Unicode escape sequences in `Converters.cs` (`\u25BE`, `\u25B8`) and `ResultModels.cs` (`\u2014`) for 100% 7-bit ASCII resilience
+* Clean up corrupted doc comment glyphs in `MainWindowViewModel.cs`
+
+# Changelog
+
 ## [2.3.1](https://github.com/gitnasr/is-subtitled/compare/v2.3.0...v2.3.1) (2026-10-27)
 
 ### Changes

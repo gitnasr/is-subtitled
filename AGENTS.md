@@ -73,6 +73,13 @@ D:\Coding\Is Subtitled Project\
 
 ---
 
+
+### Invariant 3: Source Encoding & UI Character Resilience
+**Rule**: All XAML views and C# source files must remain strictly resilient against Windows-1252 / ANSI code page corruption:
+- In Avalonia XAML files (`.axaml`), non-ASCII glyphs and symbols must be expressed using **XML numeric character entities** (e.g. `&#x2026;` for `…`, `&#x2715;` for `✕`, `&#x29C9;` for `⧉`, `&#x2197;` for `↗`, `&#x2713;` for `✓`, `&#x2315;` for `⌕`, `&#x25CF;` for `●`).
+- In C# code (`.cs`), non-ASCII characters in string literals must use **Unicode escape sequences** (e.g. `"\u25BE"`, `"\u25B8"`, `"\u2014"`).
+- Source files must never rely on raw multi-byte UTF-8 literals that can be corrupted when opened by tools without explicit UTF-8 decoding.
+
 ## 3. Architecture & Code Standards
 
 - **Runtime & UI**: .NET 10.0, Avalonia 12.0.4, CommunityToolkit.Mvvm (Source Generators: `[ObservableProperty]`, `[RelayCommand]`).

@@ -8,5 +8,5 @@ public static class Converters
 {
     /// <summary>Expanded/collapsed chevron for a result group header.</summary>
     public static readonly IValueConverter ChevronConverter =
-        new FuncValueConverter<bool, string>(expanded => expanded ? "▾" : "▸");
+        new FuncValueConverter<bool, string>(expanded => expanded ? "\u25BE" : "\u25B8");
 }

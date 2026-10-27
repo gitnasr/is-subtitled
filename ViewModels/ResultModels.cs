@@ -15,7 +15,7 @@ public sealed class VideoItem
 
     public static string FormatSize(long bytes)
     {
-        if (bytes <= 0) return "—";
+        if (bytes <= 0) return "\u2014";
         string[] units = { "B", "KB", "MB", "GB", "TB" };
         double value = bytes;
         var unit = 0;
