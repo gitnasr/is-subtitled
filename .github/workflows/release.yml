@@ -1,54 +1,159 @@
-name: Release
+﻿name: Automated Release
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: "Version bump strategy"
+        required: true
+        type: choice
+        options:
+          - "auto"
+          - "patch"
+          - "minor"
+          - "major"
+          - "custom"
+        default: "auto"
+      custom_version:
+        description: "Custom version number (used if bump_type is 'custom', e.g. 2.2.0)"
+        required: false
+        type: string
+        default: ""
+      dry_run:
+        description: "Dry run (simulate without pushing commit, tag, or creating release)"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
   pull-requests: write
 
 concurrency:
-  group: release
+  group: release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  # Opens/updates a "chore(main): release X.Y.Z" PR that bumps the version and
-  # writes CHANGELOG.md from the Conventional Commits on main. Merging that PR
-  # tags the commit and creates the GitHub release.
-  release-please:
-    runs-on: ubuntu-latest
-    outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
-    steps:
-      - uses: googleapis/release-please-action@v4
-        id: release
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          config-file: release-please-config.json
-          manifest-file: .release-please-manifest.json
-
-  # Only runs on the push that merged the release PR, so the exe is built from
-  # the exact tagged commit and attached to the release that was just created.
-  publish:
-    needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
+  release:
+    name: Auto-Bump, Build & Publish Release
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: actions/setup-dotnet@v4
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
 
-      - name: Publish single-file exe
+      - name: Calculate Release Version
+        id: semver
+        env:
+          INPUT_BUMP_TYPE: ${{ github.event.inputs.bump_type || 'auto' }}
+          INPUT_CUSTOM_VERSION: ${{ github.event.inputs.custom_version || '' }}
+          INPUT_DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+          IS_TAG_PUSH: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        run: node .github/scripts/calculate-version.mjs
+
+      - name: Update csproj & Changelog
+        if: steps.semver.outputs.should_release == 'true' && steps.semver.outputs.is_tag_push == 'false'
+        run: |
+          # Update version in csproj
+          $csproj = Get-Content IsSubtitled.csproj -Raw
+          $csproj = $csproj -replace '<Version>.*?</Version>', "<Version>${{ steps.semver.outputs.version }}</Version>"
+          Set-Content IsSubtitled.csproj $csproj -Encoding UTF8
+
+          # Update release-please manifest if exists
+          if (Test-Path .release-please-manifest.json) {
+            $manifest = @{ "." = "${{ steps.semver.outputs.version }}" } | ConvertTo-Json
+            Set-Content .release-please-manifest.json $manifest -Encoding UTF8
+          }
+
+          # Update CHANGELOG.md and generate release notes
+          node .github/scripts/generate-release-notes.mjs "${{ steps.semver.outputs.prev_tag }}" "${{ steps.semver.outputs.tag }}" --update-changelog=true --out=release-notes.md
+
+      - name: Commit, Tag & Push Version Bump
+        if: steps.semver.outputs.should_release == 'true' && steps.semver.outputs.is_tag_push == 'false' && steps.semver.outputs.dry_run == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add IsSubtitled.csproj CHANGELOG.md .release-please-manifest.json
+          git commit -m "chore(release): ${{ steps.semver.outputs.tag }} [skip ci]"
+          git tag -a "${{ steps.semver.outputs.tag }}" -m "Release ${{ steps.semver.outputs.tag }}"
+          git push origin HEAD:${{ github.ref_name }}
+          git push origin "${{ steps.semver.outputs.tag }}"
+
+      - name: Generate Standalone Release Notes
+        if: steps.semver.outputs.should_release == 'true' && (steps.semver.outputs.is_tag_push == 'true' || steps.semver.outputs.dry_run == 'true')
+        run: |
+          node .github/scripts/generate-release-notes.mjs "${{ steps.semver.outputs.prev_tag }}" "${{ steps.semver.outputs.tag }}" --update-changelog=false --out=release-notes.md
+
+      - name: Build Windows Executable (Self-Contained)
+        if: steps.semver.outputs.should_release == 'true'
         run: >
           dotnet publish IsSubtitled.csproj -c Release -r win-x64 --self-contained true
           -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
-          -o publish
+          -o publish/win-x64
 
-      - name: Attach exe to release
+      - name: Build Linux Binary (Self-Contained)
+        if: steps.semver.outputs.should_release == 'true'
+        run: |
+          dotnet publish IsSubtitled.csproj -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -o publish/linux-x64
+          tar -czvf publish/IsSubtitled-linux-x64.tar.gz -C publish/linux-x64 IsSubtitled
+
+      - name: Build macOS Binaries (Self-Contained)
+        if: steps.semver.outputs.should_release == 'true'
+        run: |
+          dotnet publish IsSubtitled.csproj -c Release -r osx-x64 --self-contained true -p:PublishSingleFile=true -o publish/osx-x64
+          tar -czvf publish/IsSubtitled-osx-x64.tar.gz -C publish/osx-x64 IsSubtitled
+          dotnet publish IsSubtitled.csproj -c Release -r osx-arm64 --self-contained true -p:PublishSingleFile=true -o publish/osx-arm64
+          tar -czvf publish/IsSubtitled-osx-arm64.tar.gz -C publish/osx-arm64 IsSubtitled
+
+      - name: Publish GitHub Release
+        if: steps.semver.outputs.should_release == 'true' && steps.semver.outputs.dry_run == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload ${{ needs.release-please.outputs.tag_name }} publish/IsSubtitled.exe --clobber
+          TAG: ${{ steps.semver.outputs.tag }}
+        run: |
+          $tag = "${{ steps.semver.outputs.tag }}"
+          $assets = @(
+            "publish/win-x64/IsSubtitled.exe",
+            "publish/IsSubtitled-linux-x64.tar.gz",
+            "publish/IsSubtitled-osx-x64.tar.gz",
+            "publish/IsSubtitled-osx-arm64.tar.gz"
+          )
+          
+          if (gh release view $tag 2>$null) {
+            Write-Host "Release $tag already exists, updating release assets..."
+            gh release upload $tag @assets --clobber
+          } else {
+            Write-Host "Creating new GitHub Release $tag..."
+            gh release create $tag `
+              --title "Release $tag" `
+              --notes-file release-notes.md `
+              @assets
+          }
+
+      - name: Release Summary
+        if: steps.semver.outputs.should_release == 'true'
+        run: |
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### 🚀 Release Successfully Published!"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- **Version**: ${{ steps.semver.outputs.tag }}"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- **Artifacts**: Windows (.exe), Linux (.tar.gz), macOS x64 & ARM64 (.tar.gz)"
+          if (Test-Path release-notes.md) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "`n#### Release Notes:`n"
+            Get-Content release-notes.md | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          }
